@@ -59,7 +59,11 @@
 }
 
 body {
-  width: 100vw; height: 100vh; overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport: exclude mobile browser chrome */
+  overflow: hidden;
+  position: fixed; /* prevent iOS Safari rubber-band scroll */
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #0f172a;
 }
@@ -1246,8 +1250,9 @@ body.is-admin .admin-login-btn { display: flex; }
     top: 70px;
   }
 
-  /* Nav start modal: hanya pastikan list tidak menyusut */
-  .nav-start-list { min-height: 120px; }
+  /* Nav start modal: pastikan box tidak menyusut jika hasil sedikit */
+  .nav-modal-box   { min-height: 300px; }
+  .nav-start-list  { min-height: 160px; }
 
   /* MapLibre controls + watermark: sejajar floor badge, clear safe area */
   .maplibregl-ctrl-bottom-right {
