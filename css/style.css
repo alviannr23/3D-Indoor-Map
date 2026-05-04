@@ -1256,6 +1256,7 @@ body.is-admin .admin-login-btn { display: flex; }
     right: auto;
     width: calc(100vw - 184px);
     top: 70px;
+    max-height: 220px;
   }
 
   /* Nav start modal: tinggi fixed agar tidak menyusut saat hasil sedikit */
