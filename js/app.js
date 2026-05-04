@@ -1001,6 +1001,7 @@ function _buildStepList(path, startKey, endKey) {
 async function _animateCameraAlongPath(path) {
   if (!path.length) return;
   _navAnimating = true;
+  document.getElementById('nav-step-panel')?.classList.add('minimized');
 
   // Split path into ordered floor segments
   const segments = [];
@@ -1040,7 +1041,12 @@ async function _animateCameraAlongPath(path) {
   }
 
   _navAnimating = false;
+  document.getElementById('nav-step-panel')?.classList.remove('minimized');
 }
+
+window.toggleNavPanel = () => {
+  document.getElementById('nav-step-panel')?.classList.toggle('minimized');
+};
 
 function clearNavigation() {
   clearTimeout(_navAutoTimer);

@@ -386,9 +386,14 @@
   <div id="nav-step-panel" class="hidden">
     <div class="nav-step-header">
       <span id="nav-step-title">Navigasi</span>
-      <button class="nav-step-close" onclick="clearNavigation()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div style="display:flex;gap:4px;align-items:center">
+        <button class="nav-step-close" id="nav-step-min-btn" onclick="window.toggleNavPanel?.()">
+          <svg id="nav-min-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button class="nav-step-close" onclick="clearNavigation()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
     <div class="nav-sp-route-row">
       <button class="nav-sp-route-btn active" id="nav-sp-rt-main" onclick="setNavRouteType('main')">&#x1F6E3; Jalan Utama</button>

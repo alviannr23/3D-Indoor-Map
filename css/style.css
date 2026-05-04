@@ -1165,6 +1165,14 @@ body.is-admin .admin-login-btn { display: flex; }
   display: flex; align-items: center; justify-content: center;
 }
 .nav-step-close:hover { background: rgba(255,255,255,0.14); color: #f1f5f9; }
+
+/* Minimized state — hanya header yang terlihat */
+#nav-step-panel.minimized .nav-step-list,
+#nav-step-panel.minimized .nav-sp-route-row { display: none; }
+#nav-step-panel.minimized .nav-step-header { border-bottom: none; }
+#nav-min-icon { transition: transform 0.2s ease; }
+#nav-step-panel.minimized #nav-min-icon { transform: rotate(180deg); }
+
 .nav-step-list { padding: 10px 12px; max-height: 260px; overflow-y: auto; scrollbar-width: none; }
 .nav-step-list::-webkit-scrollbar { display: none; }
 .nav-step-item {
