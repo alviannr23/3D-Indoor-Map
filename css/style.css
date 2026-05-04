@@ -1229,33 +1229,33 @@ body.is-admin .admin-login-btn { display: flex; }
   /* Store popup: full width, lebih dekat ke bawah */
   #store-popup {
     width: calc(100vw - 24px);
-    bottom: 68px;
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     border-radius: 16px;
   }
 
-  /* Floor badge: dekat ke bawah layar */
-  #floor-badge { bottom: 12px; }
+  /* Floor badge: sejajar dengan controls, clear dari gesture bar HP */
+  #floor-badge {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
 
-  /* Nav step panel: full width */
+  /* Nav step panel: samakan lebar & posisi dengan search box */
   #nav-step-panel {
-    left: 12px; right: 12px;
-    width: auto;
+    left: 12px;
+    right: auto;
+    width: calc(100vw - 184px);
     top: 70px;
   }
 
-  /* Nav start modal: posisi atas agar tidak tertutup keyboard saat mengetik */
-  #nav-start-modal {
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 60px;
-  }
-  .nav-modal-box {
-    width: calc(100vw - 48px);
-    max-height: 60vh;
-  }
+  /* Nav start modal: hanya pastikan list tidak menyusut */
   .nav-start-list { min-height: 120px; }
 
-  /* MapLibre controls + watermark: sejajar dengan floor badge (bottom: 12px) */
-  .maplibregl-ctrl-bottom-right { bottom: 12px; right: 12px; }
-  .maplibregl-ctrl-bottom-left  { bottom: 12px; left: 12px; }
+  /* MapLibre controls + watermark: sejajar floor badge, clear safe area */
+  .maplibregl-ctrl-bottom-right {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+  }
+  .maplibregl-ctrl-bottom-left {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+  }
 }
