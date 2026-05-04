@@ -1,0 +1,8 @@
+# GLB models — served from Supabase Storage
+*.glb
+*.gltf
+
+# Local env & editor
+.env
+.env.*
+.claude/

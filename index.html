@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Indoor Map</title>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link  href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three":                  "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/":          "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/",
+      "@supabase/supabase-js":  "https://esm.sh/@supabase/supabase-js@2"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <div id="map"></div>
+  <div id="nav-sel-box"></div>
+
+  <!-- Loading overlay -->
+  <div id="loading">
+    <div class="loading-inner">
+      <div class="spinner"></div>
+      <p id="loading-text">Memuat peta...</p>
+    </div>
+  </div>
+
+  <!-- Search box -->
+  <div id="search-box">
+    <div class="srch-wrap">
+      <svg class="srch-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="srch-input" placeholder="Cari toko..." autocomplete="off" spellcheck="false" />
+      <button class="srch-clear hidden" id="srch-clear" tabindex="-1">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="srch-results hidden" id="srch-results"></div>
+  </div>
+
+  <!-- Panel kanan -->
+  <div id="panel">
+    <div class="logo">
+      <div class="dot"></div>
+      <span>Indoor Map</span>
+    </div>
+    <div class="panel-btns">
+      <button class="panel-btn admin-only" onclick="openPanel('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Pengaturan Map</button>
+      <button class="panel-btn admin-only" id="panel-btn-nav" onclick="openPanel('nav')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><line x1="6.8" y1="11.1" x2="17.2" y2="6.2"/><line x1="6.8" y1="12.9" x2="17.2" y2="17.8"/></svg>Editor Navigasi</button>
+    </div>
+    <div class="panel-theme-row">
+      <span class="pt-lbl" id="lbl-light">☀ Light</span>
+      <label class="toggle-switch" style="width:34px;height:19px;flex-shrink:0">
+        <input type="checkbox" id="toggle-dark" onchange="toggleMapStyle(this.checked)" />
+        <span class="toggle-track"></span>
+      </label>
+      <span class="pt-lbl" id="lbl-dark">🌙 Dark</span>
+    </div>
+    <button id="admin-login-btn" class="admin-login-btn" onclick="window._onAdminBtnClick?.()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="admin-btn-label">Admin</span>
+    </button>
+  </div>
+
+  <!-- Badge lantai -->
+  <div id="floor-badge">📍 Mall — Lantai Dasar</div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SETTINGS MODAL
+       ═══════════════════════════════════════════════════════ -->
+  <div id="settings-modal" class="hidden">
+
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Pengaturan Map</span>
+      <button class="modal-close-btn" onclick="closeSettings()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- ══ SECTION: MAP ══════════════════════════════════ -->
+      <div id="section-map">
+        <p class="section-label">Koordinat Peta</p>
+        <div class="coord-row">
+          <div class="coord-field">
+            <label>Longitude</label>
+            <input type="number" id="inp-lon" step="0.0001" placeholder="112.7344" />
+          </div>
+          <div class="coord-field">
+            <label>Latitude</label>
+            <input type="number" id="inp-lat" step="0.0001" placeholder="-7.3092" />
+          </div>
+        </div>
+        <p class="field-hint">Posisi object 3D akan mengikuti koordinat ini.</p>
+        <button class="btn-apply" onclick="applyCoordinates()">Terapkan &amp; Pindah ke Lokasi</button>
+
+        <div class="sect-divider"></div>
+
+        <p class="section-label">Lantai <span class="axis-hint">— pilih lantai untuk diatur</span></p>
+        <div id="floor-manager"></div>
+
+        <div class="sect-divider"></div>
+
+        <p class="section-label">Warna Objek</p>
+        <div class="color-grid">
+          <div class="color-item">
+            <label>Lantai</label>
+            <input type="color" id="inp-floor-color" value="#d4d4d8" oninput="applyMapColors()" />
+          </div>
+          <div class="color-item">
+            <label>Default</label>
+            <input type="color" id="inp-default-color" value="#e4e4e7" oninput="applyMapColors()" />
+          </div>
+          <div class="color-item">
+            <label>Toko</label>
+            <input type="color" id="inp-store-color" value="#6366f1" oninput="applyMapColors()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION: NAV ══════════════════════════════════ -->
+      <div id="section-nav" class="hidden">
+        <div class="nav-ed-row">
+          <span class="nav-ed-status-text" id="nav-ed-status">0 titik · 0 jalur</span>
+          <label class="toggle-switch" style="width:36px;height:20px">
+            <input type="checkbox" id="nav-ed-toggle" onchange="toggleNavEditor(this.checked)" />
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="nav-ed-tools" id="nav-ed-tools">
+          <button class="nav-ed-btn active" id="ned-node" data-tool="node" onclick="navEdSetTool('node')">+ Titik</button>
+          <button class="nav-ed-btn" id="ned-connect" data-tool="connect" onclick="navEdSetTool('connect')">&#x21D4; Hubung</button>
+          <button class="nav-ed-btn" id="ned-delete" data-tool="delete" onclick="navEdSetTool('delete')">&#x2715; Hapus</button>
+        </div>
+        <div class="nav-ed-width-row" id="nav-ed-width-row" style="display:none">
+          <span class="nav-ed-width-label">Jenis jalur:</span>
+          <div class="nav-ed-width-btns">
+            <button class="nav-ed-btn nav-ed-width-btn active" id="ned-w1" onclick="navEdSetWidth(1)">&#x2500; Kecil</button>
+            <button class="nav-ed-btn nav-ed-width-btn ned-w2-btn" id="ned-w2" onclick="navEdSetWidth(2)">&#x2501; Utama</button>
+          </div>
+        </div>
+        <div class="nav-ed-actions">
+          <button class="nav-ed-btn" id="ned-undo" disabled onclick="navEdUndo()" title="Ctrl+Z">&#x21B6; Undo</button>
+          <button class="nav-ed-btn" id="ned-redo" disabled onclick="navEdRedo()" title="Ctrl+Y">&#x21B7; Redo</button>
+          <button class="sp-btn-secondary" style="flex:1;font-size:11px" onclick="navEdDeleteSelected()">Hapus Dipilih</button>
+        </div>
+
+        <!-- Node properties — shown when a single node is selected -->
+        <div id="node-props-panel" class="hidden">
+          <div class="sect-divider"></div>
+          <p class="section-label">Titik Terpilih</p>
+          <div class="np-row">
+            <span class="np-label">Akses lantai:</span>
+            <select id="np-tag-select" class="np-select" onchange="navEdSetNodeTag(this.value)">
+              <option value="">— Biasa —</option>
+              <option value="escalator_up">Eskalator Naik ↑</option>
+              <option value="escalator_down">Eskalator Turun ↓</option>
+              <option value="escalator_both">Eskalator 2 Arah ↕</option>
+              <option value="lift">Lift</option>
+              <option value="stairs">Tangga</option>
+            </select>
+          </div>
+          <div id="np-connector-row" class="hidden">
+            <p class="np-connector-info" id="np-connector-info"></p>
+            <div class="np-link-btns">
+              <button class="nav-ed-btn" id="np-link-btn" onclick="navEdStartLink()">&#x1F517; Tautkan ke Lantai...</button>
+              <button class="nav-ed-btn" id="np-unlink-btn" onclick="navEdUnlink()" style="display:none">&#x2715; Lepas Tautan</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="nav-ed-hint">
+          <b>+ Titik:</b> klik lantai — otomatis membelah jalur jika klik dekat garis<br>
+          <b>&#x21D4; Hubung:</b> klik 2 titik untuk sambung/putus jalur, pilih jenis (Kecil/Utama)<br>
+          <b>&#x2715; Hapus:</b> klik titik untuk hapus langsung<br>
+          <b>Shift+drag:</b> kotak seleksi (seperti CorelDraw) — pilih banyak titik sekaligus<br>
+          <b>Klik titik:</b> pilih/batal pilih &nbsp;|&nbsp; <b>Del:</b> hapus semua yang dipilih<br>
+          <b>WASD:</b> geser titik dipilih &nbsp;|&nbsp; <b>Shift+WASD:</b> geser presisi (lebih halus)<br>
+          <b>Ctrl+Z:</b> undo &nbsp;|&nbsp; <b>Ctrl+Y / Ctrl+Shift+Z:</b> redo
+        </p>
+      </div>
+
+    </div><!-- /modal-body -->
+  </div><!-- /settings-modal -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       STORE POPUP
+       ═══════════════════════════════════════════════════════ -->
+  <div id="sp-popup-overlay" class="hidden" onclick="closeStorePopup()"></div>
+
+  <div id="store-popup" class="hidden">
+
+    <!-- ══ VIEW MODE ══════════════════════════════════════ -->
+    <div id="sp-view">
+
+      <!-- Photo hero -->
+      <div class="sp-hero sp-hero--empty" id="sp-hero">
+        <button class="sp-close-btn" onclick="closeStorePopup()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Identity: logo + name + edit btn -->
+      <div class="sp-identity">
+        <div class="sp-logo-circle">
+          <img id="sp-logo-img" src="" alt="" />
+        </div>
+        <div class="sp-identity-text">
+          <h3 id="sp-title">-</h3>
+          <span id="sp-category-text" class="sp-category-text"></span>
+        </div>
+        <button class="sp-edit-pill admin-only" id="sp-edit-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+      </div>
+
+      <!-- Status (open/closed) -->
+      <div class="sp-status" id="sp-status"></div>
+
+      <!-- Quick action buttons (phone, website) -->
+      <div class="sp-quick" id="sp-quick"></div>
+
+      <!-- Navigation button -->
+      <button class="sp-nav-btn" id="sp-nav-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Petunjuk Arah
+      </button>
+
+      <!-- Info list (description, phone, website, hours) -->
+      <div class="sp-infolist" id="sp-infolist"></div>
+
+    </div><!-- /sp-view -->
+
+    <!-- ══ EDIT MODE ═══════════════════════════════════════ -->
+    <div id="sp-edit" class="hidden">
+
+      <!-- Edit topbar -->
+      <div class="sp-edit-topbar">
+        <button class="sp-back-btn" id="sp-back-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Kembali
+        </button>
+        <span class="sp-edit-title">Edit Toko</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="sp-tabs" id="sp-tabs">
+        <button class="sp-tab active" data-tab="info">Info</button>
+        <button class="sp-tab" data-tab="photos">Foto</button>
+        <button class="sp-tab" data-tab="hours">Jam</button>
+        <button class="sp-tab" data-tab="model">3D</button>
+      </div>
+
+      <!-- Tab panels -->
+      <div class="sp-tab-body">
+
+        <!-- Info -->
+        <div class="sp-panel" id="sp-panel-info">
+          <div class="sp-field-full">
+            <label>Nama Toko</label>
+            <input type="text" id="sp-name" placeholder="Nama toko..." />
+          </div>
+          <div class="sp-field-full">
+            <label>Kategori</label>
+            <input type="text" id="sp-category" placeholder="Retail, F&amp;B, Elektronik..." />
+          </div>
+          <div class="sp-field-full">
+            <label>Deskripsi</label>
+            <textarea id="sp-description" rows="3" placeholder="Deskripsi singkat toko..."></textarea>
+          </div>
+          <div class="sp-field-full">
+            <label>Telepon</label>
+            <input type="tel" id="sp-phone" placeholder="+62..." />
+          </div>
+          <div class="sp-field-full">
+            <label>Website</label>
+            <input type="url" id="sp-website" placeholder="https://..." />
+          </div>
+          <div class="sp-divider"></div>
+          <div class="sp-sect-label">Logo 3D</div>
+          <input type="file" id="sp-logo-input" accept="image/*" hidden />
+          <button class="sp-btn-secondary" id="sp-change-logo-btn" style="margin-bottom:10px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Ganti Logo
+          </button>
+          <div class="sp-field-row">
+            <div class="sp-field"><label>Skala</label><input type="number" id="logoScale" step="0.05" /></div>
+            <div class="sp-field"><label>Rotasi °</label><input type="number" id="logoRotation" step="1" /></div>
+          </div>
+          <div class="sp-field-row">
+            <div class="sp-field"><label>Offset X</label><input type="number" id="offsetX" step="0.1" /></div>
+            <div class="sp-field"><label>Offset Z</label><input type="number" id="offsetZ" step="0.1" /></div>
+          </div>
+        </div>
+
+        <!-- Photos -->
+        <div class="sp-panel hidden" id="sp-panel-photos">
+          <p class="sp-hint-text">Maks. 5 foto · Dikompres otomatis ke JPEG</p>
+          <div class="sp-photo-grid" id="sp-photo-grid"></div>
+          <input type="file" id="sp-photo-input" accept="image/*" hidden />
+          <button class="sp-btn-secondary" id="sp-add-photo-btn" style="margin-top:10px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Foto
+          </button>
+        </div>
+
+        <!-- Hours -->
+        <div class="sp-panel hidden" id="sp-panel-hours">
+          <div id="sp-hours-edit"></div>
+        </div>
+
+        <!-- 3D Model -->
+        <div class="sp-panel hidden" id="sp-panel-model">
+          <div class="sp-sect-label sp-sect-label--row">
+            <span>Base Mesh</span>
+            <div class="sp-base-controls">
+              <button onclick="spAddBase()" title="Tambah base">+</button>
+              <button onclick="spResetBases()" title="Reset semua base">↺</button>
+              <label>Idx</label>
+              <input type="number" id="baseIndex" value="0" min="0" max="0" />
+            </div>
+          </div>
+          <div class="sp-field-full" style="margin-bottom:10px">
+            <label>Tekstur Base</label>
+            <input type="file" id="sp-base-texture-input" accept="image/*" />
+          </div>
+          <div class="sp-field-row">
+            <div class="sp-field"><label>Offset X</label><input type="number" id="baseOffsetX" step="0.1" /></div>
+            <div class="sp-field"><label>Offset Z</label><input type="number" id="baseOffsetZ" step="0.1" /></div>
+          </div>
+          <div class="sp-field-row">
+            <div class="sp-field"><label>Scale X</label><input type="number" id="baseScaleX" step="0.1" /></div>
+            <div class="sp-field"><label>Scale Z</label><input type="number" id="baseScaleZ" step="0.1" /></div>
+          </div>
+        </div>
+
+      </div><!-- /sp-tab-body -->
+    </div><!-- /sp-edit -->
+
+    <!-- Save footer (sticky, only in edit mode) -->
+    <div id="sp-save-footer" class="hidden">
+      <button id="sp-save-btn" class="sp-btn-save">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Simpan Perubahan
+      </button>
+    </div>
+
+  </div><!-- /store-popup -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       NAV START MODAL
+       ═══════════════════════════════════════════════════════ -->
+  <div id="nav-start-modal" class="hidden">
+    <div class="nav-modal-backdrop" onclick="document.getElementById('nav-start-modal').classList.add('hidden')"></div>
+    <div class="nav-modal-box">
+      <div class="nav-modal-header">
+        <span>Saya berada di dekat...</span>
+        <button class="modal-close-btn" onclick="document.getElementById('nav-start-modal').classList.add('hidden')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="nav-route-type">
+        <button class="nav-route-btn active" id="nav-rt-main" onclick="setNavRouteType('main')">&#x1F6E3; Jalan Utama</button>
+        <button class="nav-route-btn" id="nav-rt-fast" onclick="setNavRouteType('fastest')">&#x26A1; Tercepat</button>
+      </div>
+      <div class="nav-start-search-wrap">
+        <svg class="nav-start-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="nav-start-search" placeholder="Cari toko..." autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="nav-start-list" class="nav-start-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       NAV STEP PANEL
+       ═══════════════════════════════════════════════════════ -->
+  <div id="nav-step-panel" class="hidden">
+    <div class="nav-step-header">
+      <span id="nav-step-title">Navigasi</span>
+      <button class="nav-step-close" onclick="clearNavigation()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-sp-route-row">
+      <button class="nav-sp-route-btn active" id="nav-sp-rt-main" onclick="setNavRouteType('main')">&#x1F6E3; Jalan Utama</button>
+      <button class="nav-sp-route-btn" id="nav-sp-rt-fast" onclick="setNavRouteType('fastest')">&#x26A1; Tercepat</button>
+    </div>
+    <div id="nav-step-list" class="nav-step-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       LINK FLOOR PICKER MODAL
+       ═══════════════════════════════════════════════════════ -->
+  <div id="link-floor-modal" class="hidden">
+    <div class="lfm-backdrop" onclick="navEdCancelLink()"></div>
+    <div class="lfm-box">
+      <p class="lfm-title">Tautkan ke lantai mana?</p>
+      <div id="lfm-floor-btns" class="lfm-btns"></div>
+      <button class="sp-btn-secondary" onclick="navEdCancelLink()">Batal</button>
+    </div>
+  </div>
+
+  <!-- Link-pick hint banner -->
+  <div id="link-pick-hint" class="hidden">
+    Klik titik di lantai ini untuk menautkan
+    <button onclick="navEdCancelLink()">&#x2715; Batal</button>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div id="admin-login-modal" class="hidden">
+    <div class="admin-modal-backdrop" onclick="window.closeAdminLogin?.()"></div>
+    <div class="admin-modal-box">
+      <h3 class="admin-modal-title">Login Admin</h3>
+      <input type="email" id="admin-email" class="admin-modal-input" placeholder="Email" autocomplete="email" />
+      <input type="password" id="admin-password" class="admin-modal-input" placeholder="Password"
+             onkeydown="if(event.key==='Enter') window.doLogin?.()" />
+      <p id="admin-login-error" class="admin-login-error"></p>
+      <div class="admin-modal-actions">
+        <button class="admin-modal-cancel" onclick="window.closeAdminLogin?.()">Batal</button>
+        <button class="admin-modal-submit" id="admin-submit-btn" onclick="window.doLogin?.()">Masuk</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
