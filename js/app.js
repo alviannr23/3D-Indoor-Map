@@ -478,7 +478,8 @@ map.on('movestart', (e) => {
 
 map.on('load', () => {
   clearTimeout(_mapLoadTimeout);
-  hideLoading(); // Tiles siap → loading hilang langsung
+  hideLoading();
+  _setModelBar('Memuat model 3D...');
 
   // Compass button: clone untuk hapus semua listener MapLibre (touch & click),
   // lalu pasang handler kita sendiri untuk toggle top-down ↔ tampilan 3D
