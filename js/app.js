@@ -204,6 +204,16 @@ map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bott
 map.addControl(new maplibregl.FullscreenControl({ container: document.body }), 'bottom-right');
 setLoadingText('Memuat peta...');
 
+// Timeout: jika peta tidak muat dalam 20 detik, tampilkan opsi reload
+const _mapLoadTimeout = setTimeout(() => {
+  setLoadingText('Koneksi lambat. <a href="" style="color:#a5b4fc">Coba lagi</a>');
+}, 20000);
+
+map.on('error', (e) => {
+  console.warn('[Map error]', e.error);
+  setLoadingText('Gagal memuat peta. <a href="" style="color:#a5b4fc">Coba lagi</a>');
+});
+
 /* ══════════════════════════════════════════════════════════
    CUSTOM THREE.JS LAYER
    ══════════════════════════════════════════════════════════ */
@@ -470,6 +480,7 @@ map.on('movestart', (e) => {
 });
 
 map.on('load', () => {
+  clearTimeout(_mapLoadTimeout);
   map.addLayer(modelLayer);
 
   // Compass button: clone untuk hapus semua listener MapLibre (touch & click),
