@@ -34,6 +34,7 @@ const DEFAULTS = {
   darkMode: true,
   light: { floorColor: '#d4d4d8', defaultColor: '#e4e4e7', storeColor: '#1500ff' },
   dark:  { floorColor: '#3a3a4a', defaultColor: '#4a4a5a', storeColor: '#1500ff' },
+  categoryFilters: [],
 };
 
 let _isAdmin = false; // true when admin is logged in
@@ -158,6 +159,12 @@ let hoveredKey    = null;       // currently hovered store key
 let highlightKey  = null;       // store being blinked after search
 let highlightStart = 0;
 const HIGHLIGHT_MS = 2800;
+
+/* ── CATEGORY FILTER STATE ───────────────────────────────── */
+let _catFilterLabel   = null;   // active category label
+let _catHighlightKeys = null;   // Set of matching store keys
+let _catHighlightStart = 0;
+let _catFilterTimeout = null;
 
 /* ── NAVIGATION STATE ────────────────────────────────────── */
 let navGraph       = null;   // points to navGraphs[_viewFloorIdx]
@@ -290,6 +297,17 @@ const modelLayer = {
         const blink = 0.5 + 0.5 * Math.sin(elapsed * 0.012);
         data?.bases?.forEach(m => { m.material.opacity = blink; });
       }
+    }
+
+    // Blink category filter stores (current floor only)
+    if (_catHighlightKeys?.size && storeManager) {
+      const elapsed = performance.now() - _catHighlightStart;
+      const blink   = 0.55 + 0.45 * Math.sin(elapsed * 0.009);
+      _catHighlightKeys.forEach(key => {
+        const fi = parseInt(key.match(/^f(\d+)_/)?.[1] ?? '1') - 1;
+        if (fi !== _viewFloorIdx) return;
+        storeManager.getStoreData(key)?.bases?.forEach(m => { m.material.opacity = blink; });
+      });
     }
 
     const _now = performance.now();
@@ -507,8 +525,11 @@ map.on('load', () => {
   }, 300);
 
   // Tunggu sync Supabase selesai (biasanya sudah selesai saat tiles load),
-  // lalu baru tambahkan layer 3D
-  _dbSyncPromise.then(() => { map.addLayer(modelLayer); });
+  // lalu baru tambahkan layer 3D dan bangun category bar
+  _dbSyncPromise.then(() => {
+    map.addLayer(modelLayer);
+    buildCategoryBar();
+  });
 });
 
 /* ── RAYCASTING ──────────────────────────────────────────── */
@@ -1088,6 +1109,7 @@ window.openPanel = (type) => {
   if (type === 'map') {
     document.getElementById('inp-lon').value = S.lon;
     document.getElementById('inp-lat').value = S.lat;
+    _buildCategoryAdminUI();
     _buildFloorUI();
     document.getElementById('inp-floor-color').value   = C().floorColor;
     document.getElementById('inp-default-color').value = C().defaultColor;
@@ -1426,6 +1448,113 @@ function _hideModelBar() {
   const bar = document.getElementById('model-loading-bar');
   if (bar) bar.classList.add('hidden');
 }
+
+/* ── CATEGORY FILTER ─────────────────────────────────────── */
+function buildCategoryBar() {
+  const bar = document.getElementById('category-bar');
+  if (!bar) return;
+  const cats = S.categoryFilters || [];
+  bar.innerHTML = cats.map(c => {
+    const lbl = c.label.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<button class="cat-chip" data-cat="${lbl}"
+      onclick="window.applyCategoryFilter('${lbl}')">
+      ${c.icon ? `<span>${c.icon}</span>` : ''}<span>${c.label}</span>
+    </button>`;
+  }).join('');
+}
+
+window.applyCategoryFilter = (label) => {
+  if (_catFilterLabel === label) { clearCategoryFilter(); return; }
+  clearTimeout(_catFilterTimeout);
+
+  // Reset opacity of previous filter
+  if (_catHighlightKeys && storeManager) {
+    _catHighlightKeys.forEach(k => {
+      storeManager.getStoreData(k)?.bases?.forEach(m => { m.material.opacity = 0.65; });
+    });
+  }
+
+  _catFilterLabel = label;
+  document.querySelectorAll('.cat-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === label)
+  );
+
+  const cfg = Utils.getStoreConfig();
+  const matching = cfg.filter(s =>
+    s.category && s.category.toLowerCase().includes(label.toLowerCase())
+  );
+
+  if (!matching.length) { _catHighlightKeys = null; return; }
+
+  _catHighlightKeys  = new Set(matching.map(s => s.key));
+  _catHighlightStart = performance.now();
+
+  // Group by floor index, then animate per floor in order
+  const byFloor = {};
+  matching.forEach(s => {
+    const fi = parseInt(s.key.match(/^f(\d+)_/)?.[1] ?? '1') - 1;
+    if (!byFloor[fi]) byFloor[fi] = [];
+    byFloor[fi].push(s.key);
+  });
+
+  const floors = Object.keys(byFloor).map(Number).sort();
+  _runCatFloorSeq(floors, 0);
+};
+
+function _runCatFloorSeq(floors, idx) {
+  if (!_catFilterLabel || idx >= floors.length) return;
+  window.switchFloor(floors[idx]);
+  _catHighlightStart = performance.now();
+  if (idx < floors.length - 1) {
+    _catFilterTimeout = setTimeout(() => _runCatFloorSeq(floors, idx + 1), 3200);
+  }
+}
+
+function clearCategoryFilter() {
+  clearTimeout(_catFilterTimeout);
+  if (_catHighlightKeys && storeManager) {
+    _catHighlightKeys.forEach(k => {
+      storeManager.getStoreData(k)?.bases?.forEach(m => { m.material.opacity = 0.65; });
+    });
+  }
+  _catFilterLabel   = null;
+  _catHighlightKeys = null;
+  document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+}
+
+/* ── CATEGORY ADMIN UI ───────────────────────────────────── */
+function _buildCategoryAdminUI() {
+  const el = document.getElementById('cat-admin-list');
+  if (!el) return;
+  if (!S.categoryFilters) S.categoryFilters = [];
+  el.innerHTML = S.categoryFilters.map((c, i) => `
+    <div class="cat-admin-row">
+      <input class="cat-admin-icon" type="text" maxlength="4"
+        value="${(c.icon || '').replace(/"/g, '&quot;')}" placeholder="😀"
+        oninput="window._catSetIcon(${i}, this.value)" />
+      <input class="cat-admin-label" type="text"
+        value="${(c.label || '').replace(/"/g, '&quot;')}" placeholder="Nama kategori"
+        oninput="window._catSetLabel(${i}, this.value)"
+        onblur="window._catSave()" />
+      <button class="cat-admin-del" onclick="window._catDelete(${i})">✕</button>
+    </div>
+  `).join('') + `<button class="cat-admin-add-btn" onclick="window._catAdd()">+ Tambah</button>`;
+}
+
+window._catSetIcon  = (i, v) => { S.categoryFilters[i].icon  = v; buildCategoryBar(); };
+window._catSetLabel = (i, v) => { S.categoryFilters[i].label = v; buildCategoryBar(); };
+window._catSave     = ()     => persist();
+window._catDelete   = (i)    => {
+  S.categoryFilters.splice(i, 1);
+  _buildCategoryAdminUI();
+  buildCategoryBar();
+  persist();
+};
+window._catAdd = () => {
+  S.categoryFilters.push({ label: '', icon: '' });
+  _buildCategoryAdminUI();
+  persist();
+};
 
 /* ── SEARCH SELECT ───────────────────────────────────────── */
 function searchSelectStore(key) {

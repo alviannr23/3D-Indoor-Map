@@ -869,6 +869,59 @@ input[type=range].range-slider::-moz-range-thumb {
 }
 
 /* ══════════════════════════════════════════════════════════
+   CATEGORY FILTER BAR
+   ══════════════════════════════════════════════════════════ */
+
+#category-bar {
+  position: absolute; top: 64px; left: 20px; z-index: 10;
+  display: flex; gap: 6px;
+  flex-wrap: nowrap; overflow-x: auto;
+  max-width: 248px;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+#category-bar::-webkit-scrollbar { display: none; }
+
+.cat-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 50px; border: none;
+  background: rgba(15,23,42,0.82); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #94a3b8; font-size: 11px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: all 0.18s;
+}
+.cat-chip:hover  { border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+.cat-chip.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.55); color: #a5b4fc; }
+
+/* Category admin UI in settings */
+.cat-admin-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.cat-admin-icon {
+  width: 36px; text-align: center;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px; color: #e2e8f0; font-size: 13px; padding: 4px;
+}
+.cat-admin-label {
+  flex: 1;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px; color: #e2e8f0; font-size: 11px; padding: 4px 8px;
+}
+.cat-admin-del {
+  background: none; border: none; color: #64748b; cursor: pointer;
+  font-size: 13px; padding: 2px 4px; line-height: 1;
+}
+.cat-admin-del:hover { color: #f87171; }
+.cat-admin-add-btn {
+  margin-top: 4px; width: 100%;
+  background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 8px; color: #64748b; font-size: 11px; padding: 6px;
+  cursor: pointer; transition: all 0.15s;
+}
+.cat-admin-add-btn:hover { border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+
+/* ══════════════════════════════════════════════════════════
    SEARCH BOX
    ══════════════════════════════════════════════════════════ */
 
@@ -1235,6 +1288,13 @@ body.is-admin .admin-login-btn { display: flex; }
    RESPONSIVE — MOBILE (≤600px)
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
+  /* Category bar */
+  #category-bar {
+    top: 56px;
+    left: 12px;
+    max-width: calc(100vw - 184px);
+  }
+
   /* Search box: isi sisa ruang di kiri, beri jarak ke panel kanan */
   #search-box {
     left: 12px;
@@ -1271,7 +1331,7 @@ body.is-admin .admin-login-btn { display: flex; }
 
   /* Floor badge: sejajar dengan controls, clear dari gesture bar HP */
   #floor-badge {
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Nav step panel: samakan lebar & posisi dengan search box */

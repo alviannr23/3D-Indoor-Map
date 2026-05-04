@@ -26,6 +26,9 @@
     </div>
   </div>
 
+  <!-- Category filter bar -->
+  <div id="category-bar"></div>
+
   <!-- Search box -->
   <div id="search-box">
     <div class="srch-wrap">
@@ -123,7 +126,15 @@
             <input type="color" id="inp-store-color" value="#6366f1" oninput="applyMapColors()" />
           </div>
         </div>
-      </div>
+
+        <!-- Category filters (admin only) -->
+        <div class="admin-only">
+          <div class="sect-divider"></div>
+          <p class="section-label">Filter Kategori <span class="axis-hint">— tombol di bawah pencarian</span></p>
+          <div id="cat-admin-list"></div>
+        </div>
+
+      </div><!-- /section-map -->
 
       <!-- ══ SECTION: NAV ══════════════════════════════════ -->
       <div id="section-nav" class="hidden">
