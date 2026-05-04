@@ -1250,9 +1250,9 @@ body.is-admin .admin-login-btn { display: flex; }
     top: 70px;
   }
 
-  /* Nav start modal: pastikan box tidak menyusut jika hasil sedikit */
-  .nav-modal-box   { min-height: 300px; }
-  .nav-start-list  { min-height: 160px; }
+  /* Nav start modal: tinggi fixed agar tidak menyusut saat hasil sedikit */
+  .nav-modal-box  { height: 55vh; max-height: 55vh; }
+  .nav-start-list { flex: 1; }
 
   /* MapLibre controls + watermark: sejajar floor badge, clear safe area */
   .maplibregl-ctrl-bottom-right {
