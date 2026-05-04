@@ -1,0 +1,29 @@
+{
+  "name": "3d-indoor-map",
+  "version": "1.0.0",
+  "description": "Group project by Astrophage Team",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alviannr23/3D-Indoor-Map.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/alviannr23/3D-Indoor-Map/issues"
+  },
+  "homepage": "https://github.com/alviannr23/3D-Indoor-Map#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.2",
+    "maplibre-gl": "^5.24.0",
+    "three": "^0.184.0",
+    "vite": "^8.0.10"
+  }
+}

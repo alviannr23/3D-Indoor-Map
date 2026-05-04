@@ -2,7 +2,12 @@
 *.glb
 *.gltf
 
+# Node & build
+node_modules/
+dist/
+
 # Local env & editor
 .env
 .env.*
 .claude/
+.claude

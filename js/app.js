@@ -1,3 +1,5 @@
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import * as THREE     from 'three';
 import { GLTFLoader }  from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -329,7 +331,7 @@ let _gltfLoader = null;
 function _getLoader() {
   if (_gltfLoader) return _gltfLoader;
   const draco = new DRACOLoader();
-  draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/libs/draco/');
+  draco.setDecoderPath('/draco/');
   _gltfLoader = new GLTFLoader();
   _gltfLoader.setDRACOLoader(draco);
   return _gltfLoader;
