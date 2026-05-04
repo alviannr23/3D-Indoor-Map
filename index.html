@@ -50,6 +50,7 @@
     <div class="panel-btns">
       <button class="panel-btn admin-only" onclick="openPanel('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Pengaturan Map</button>
       <button class="panel-btn admin-only" id="panel-btn-nav" onclick="openPanel('nav')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><line x1="6.8" y1="11.1" x2="17.2" y2="6.2"/><line x1="6.8" y1="12.9" x2="17.2" y2="17.8"/></svg>Editor Navigasi</button>
+      <button class="panel-btn admin-only" onclick="openPanel('categories')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Filter Kategori</button>
     </div>
     <div class="panel-theme-row">
       <span class="pt-lbl" id="lbl-light">☀ Light</span>
@@ -127,13 +128,6 @@
           </div>
         </div>
 
-        <!-- Category filters (admin only) -->
-        <div class="admin-only">
-          <div class="sect-divider"></div>
-          <p class="section-label">Filter Kategori <span class="axis-hint">— tombol di bawah pencarian</span></p>
-          <div id="cat-admin-list"></div>
-        </div>
-
       </div><!-- /section-map -->
 
       <!-- ══ SECTION: NAV ══════════════════════════════════ -->
@@ -196,6 +190,13 @@
           <b>WASD:</b> geser titik dipilih &nbsp;|&nbsp; <b>Shift+WASD:</b> geser presisi (lebih halus)<br>
           <b>Ctrl+Z:</b> undo &nbsp;|&nbsp; <b>Ctrl+Y / Ctrl+Shift+Z:</b> redo
         </p>
+      </div>
+
+      <!-- ══ SECTION: CATEGORIES ══════════════════════════════ -->
+      <div id="section-categories" class="hidden">
+        <p class="section-label">Filter Kategori <span class="axis-hint">— tombol cepat di bawah pencarian</span></p>
+        <p class="field-hint">Isi Kategori pada data toko agar cocok dengan label di sini.</p>
+        <div id="cat-admin-list"></div>
       </div>
 
     </div><!-- /modal-body -->

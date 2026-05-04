@@ -1098,10 +1098,10 @@ function clearNavigation() {
 /* ══════════════════════════════════════════════════════════
    SETTINGS MODAL
    ══════════════════════════════════════════════════════════ */
-const _PANEL_TITLES = { map: 'Pengaturan Map', nav: 'Editor Navigasi', theme: 'Tema Peta' };
+const _PANEL_TITLES = { map: 'Pengaturan Map', nav: 'Editor Navigasi', categories: 'Filter Kategori' };
 
 window.openPanel = (type) => {
-  ['map', 'nav', 'theme'].forEach(t => {
+  ['map', 'nav', 'categories'].forEach(t => {
     document.getElementById(`section-${t}`)?.classList.toggle('hidden', t !== type);
   });
   document.getElementById('modal-title').textContent = _PANEL_TITLES[type] || '';
@@ -1109,11 +1109,13 @@ window.openPanel = (type) => {
   if (type === 'map') {
     document.getElementById('inp-lon').value = S.lon;
     document.getElementById('inp-lat').value = S.lat;
-    _buildCategoryAdminUI();
     _buildFloorUI();
     document.getElementById('inp-floor-color').value   = C().floorColor;
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
+  }
+  if (type === 'categories') {
+    _buildCategoryAdminUI();
   }
   if (type === 'nav') {
     const tog = document.getElementById('nav-ed-toggle');
@@ -1473,6 +1475,10 @@ window.applyCategoryFilter = (label) => {
       storeManager.getStoreData(k)?.bases?.forEach(m => { m.material.opacity = 0.65; });
     });
   }
+
+  // Fokus ke peta seperti tombol compass
+  const mobile = window.innerWidth < 640;
+  map.easeTo({ center: [S.lon, S.lat], zoom: mobile ? 17 : 18, pitch: mobile ? 45 : 58, bearing: -30, duration: 900, easing: ease });
 
   _catFilterLabel = label;
   document.querySelectorAll('.cat-chip').forEach(b =>
