@@ -484,7 +484,7 @@ map.on('load', () => {
       if (topDownActive) {
         map.easeTo({ center: [S.lon, S.lat], zoom: isMobile() ? 17 : 18, pitch: isMobile() ? 45 : 58, bearing: -30, duration: 900, easing: ease });
       } else {
-        map.easeTo({ center: [S.lon, S.lat], bearing: 0, pitch: 0, zoom: 17.5, duration: 900, easing: ease });
+        map.easeTo({ center: [S.lon, S.lat], bearing: 0, pitch: 0, zoom: isMobile() ? 16 : 17.5, duration: 900, easing: ease });
       }
       topDownActive = !topDownActive;
     });

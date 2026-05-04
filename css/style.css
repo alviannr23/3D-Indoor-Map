@@ -1218,7 +1218,7 @@ body.is-admin .admin-login-btn { display: flex; }
   .logo span { font-size: 11px; }
   .panel-btn { padding: 7px 10px; font-size: 11px; }
 
-  /* Settings modal: geser ke bawah panel, full width */
+  /* Settings modal: full width di bawah panel */
   #settings-modal {
     top: 12px;
     right: 12px;
@@ -1226,15 +1226,15 @@ body.is-admin .admin-login-btn { display: flex; }
     width: auto;
   }
 
-  /* Store popup: full width */
+  /* Store popup: full width, lebih dekat ke bawah */
   #store-popup {
     width: calc(100vw - 24px);
-    bottom: 70px;
+    bottom: 68px;
     border-radius: 16px;
   }
 
-  /* Floor badge: naikkan sedikit agar tidak ketutup kontrol peta */
-  #floor-badge { bottom: 68px; }
+  /* Floor badge: dekat ke bawah layar */
+  #floor-badge { bottom: 12px; }
 
   /* Nav step panel: full width */
   #nav-step-panel {
@@ -1243,9 +1243,19 @@ body.is-admin .admin-login-btn { display: flex; }
     top: 70px;
   }
 
-  /* Nav start modal: full width */
-  .nav-modal-box { width: calc(100vw - 32px); }
+  /* Nav start modal: lebar sama dengan search box, posisi atas agar tidak
+     tertutup keyboard saat user mengetik */
+  #nav-start-modal {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 70px 12px 0 12px;
+  }
+  .nav-modal-box {
+    width: calc(100vw - 184px);
+    max-height: 55vh;
+  }
+  .nav-start-list { min-height: 120px; }
 
-  /* MapLibre controls: geser agar tidak ketutup floor badge */
-  .maplibregl-ctrl-bottom-right { bottom: 68px; right: 12px; }
+  /* MapLibre controls: pojok kanan bawah, sejajar floor badge */
+  .maplibregl-ctrl-bottom-right { bottom: 4px; right: 12px; }
 }
