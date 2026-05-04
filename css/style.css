@@ -1243,19 +1243,19 @@ body.is-admin .admin-login-btn { display: flex; }
     top: 70px;
   }
 
-  /* Nav start modal: lebar sama dengan search box, posisi atas agar tidak
-     tertutup keyboard saat user mengetik */
+  /* Nav start modal: posisi atas agar tidak tertutup keyboard saat mengetik */
   #nav-start-modal {
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
-    padding: 70px 12px 0 12px;
+    padding-top: 60px;
   }
   .nav-modal-box {
-    width: calc(100vw - 184px);
-    max-height: 55vh;
+    width: calc(100vw - 48px);
+    max-height: 60vh;
   }
   .nav-start-list { min-height: 120px; }
 
-  /* MapLibre controls: pojok kanan bawah, sejajar floor badge */
-  .maplibregl-ctrl-bottom-right { bottom: 4px; right: 12px; }
+  /* MapLibre controls + watermark: sejajar dengan floor badge (bottom: 12px) */
+  .maplibregl-ctrl-bottom-right { bottom: 12px; right: 12px; }
+  .maplibregl-ctrl-bottom-left  { bottom: 12px; left: 12px; }
 }
