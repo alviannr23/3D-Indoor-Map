@@ -1263,8 +1263,9 @@ function _buildFloorUI() {
       const { uploadAsset } = await import('./db.js');
       const url = await uploadAsset(file, `models/${file.name}`);
       if (url) {
-        S.floors[i].path = url;
-        document.getElementById('finp-path').value = url;
+        const bustedUrl = `${url}?t=${Date.now()}`;
+        S.floors[i].path = bustedUrl;
+        document.getElementById('finp-path').value = bustedUrl;
         persist();
         uploadBtn.textContent = '✓ Berhasil';
         setTimeout(() => {
