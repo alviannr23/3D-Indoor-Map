@@ -1001,7 +1001,7 @@ function _buildStepList(path, startKey, endKey) {
 async function _animateCameraAlongPath(path) {
   if (!path.length) return;
   _navAnimating = true;
-  document.getElementById('nav-step-panel')?.classList.add('minimized');
+  if (window.innerWidth < 640) document.getElementById('nav-step-panel')?.classList.add('minimized');
 
   // Split path into ordered floor segments
   const segments = [];
