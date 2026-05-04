@@ -197,7 +197,9 @@ const map = new maplibregl.Map({
   pitch:     52,
   bearing:  -25,
   antialias: true,
+  attributionControl: false,
 });
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 map.addControl(new maplibregl.FullscreenControl({ container: document.body }), 'bottom-right');
 setLoadingText('Memuat peta...');
