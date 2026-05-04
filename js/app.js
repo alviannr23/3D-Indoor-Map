@@ -363,7 +363,7 @@ function _loadSingleFloor(scene, i) {
   logoGroups[i] = logoGroup;
   logoGroup.visible = (i === _viewFloorIdx);
 
-  if (i === 0) setLoadingText('Memuat model 3D...');
+  if (i === 0) _setModelBar('Memuat model 3D...');
   _getLoader().load(
     f.path,
     (gltf) => {
@@ -371,16 +371,16 @@ function _loadSingleFloor(scene, i) {
       group.updateMatrixWorld(true);
       setupMaterials(gltf.scene);
       setupStores(gltf.scene, i);
-      if (i === 0) hideLoading();
+      if (i === 0) _hideModelBar();
       _buildFloorSwitcher();
       map.triggerRepaint();
     },
     (p) => {
-      if (i === 0 && p.total > 0) setLoadingText(`Memuat model... ${((p.loaded / p.total) * 100) | 0}%`);
+      if (i === 0 && p.total > 0) _setModelBar(`Memuat model... ${((p.loaded / p.total) * 100) | 0}%`);
     },
     (err) => {
       console.warn(`[GLB floor${i}: ${f.path}]`, err);
-      if (i === 0) { setLoadingText('⚠ Gagal memuat. Jalankan via server lokal.'); setTimeout(hideLoading, 4000); }
+      if (i === 0) { _setModelBar('⚠ Gagal memuat model'); setTimeout(_hideModelBar, 4000); }
     }
   );
 }
@@ -483,6 +483,7 @@ map.on('movestart', (e) => {
 
 map.on('load', () => {
   clearTimeout(_mapLoadTimeout);
+  hideLoading();
   map.addLayer(modelLayer);
 
   // Compass button: clone untuk hapus semua listener MapLibre (touch & click),
@@ -1412,6 +1413,19 @@ function setLoadingText(msg) {
 function hideLoading() {
   const el = document.getElementById('loading');
   if (el) el.classList.add('hidden');
+}
+
+function _setModelBar(msg) {
+  const bar = document.getElementById('model-loading-bar');
+  const txt = document.getElementById('model-loading-text');
+  if (!bar) return;
+  if (txt) txt.textContent = msg;
+  bar.classList.remove('hidden');
+}
+
+function _hideModelBar() {
+  const bar = document.getElementById('model-loading-bar');
+  if (bar) bar.classList.add('hidden');
 }
 
 /* ── SEARCH SELECT ───────────────────────────────────────── */
