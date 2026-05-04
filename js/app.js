@@ -63,8 +63,8 @@ let S = (() => {
   } catch { return { ...DEFAULTS, light: { ...DEFAULTS.light }, dark: { ...DEFAULTS.dark } }; }
 })();
 
-/* ── SUPABASE STARTUP SYNC ───────────────────────────────── */
-if (isConfigured()) {
+/* ── SUPABASE STARTUP SYNC (background — tidak blokir map) ── */
+async function _dbSync() {
   try {
     const [dbConfig, dbStores] = await Promise.all([
       fetchMapConfig().catch(() => null),
@@ -72,7 +72,6 @@ if (isConfigured()) {
     ]);
 
     if (dbConfig) {
-      // DB data lebih prioritas dari localStorage
       S = {
         ...DEFAULTS,
         ...dbConfig,
@@ -81,34 +80,30 @@ if (isConfigured()) {
       };
       localStorage.setItem('imap_cfg', JSON.stringify(S));
     } else {
-      // DB kosong → migrate S dari localStorage ke Supabase
       saveMapConfig(S).catch(() => {});
     }
 
     if (dbStores && dbStores.length > 0) {
       Utils.initStoreCache(dbStores);
     } else {
-      // Pertama kali: migrate dari localStorage ke Supabase
       const localStores = JSON.parse(localStorage.getItem('storeConfig') || '[]');
       Utils.initStoreCache(localStores);
       if (localStores.length > 0) {
-        fetchStores().then(() => {}).catch(() => {}); // will upsert via saveStoreConfig
         import('./db.js').then(({ upsertStores }) => upsertStores(localStores)).catch(() => {});
       }
     }
 
-    // Auth — cek sesi yang sudah ada, lalu pantau perubahan
     const currentUser = await getUser().catch(() => null);
     _applyAdminState(!!currentUser);
     onAuthChange(user => _applyAdminState(!!user));
   } catch (e) {
     console.warn('[DB] Startup sync gagal, pakai localStorage:', e);
-    _applyAdminState(true); // fallback: tampilkan kontrol admin
+    _applyAdminState(true);
   }
-} else {
-  // Tanpa Supabase: selalu tampilkan kontrol admin
-  _applyAdminState(true);
 }
+
+const _dbSyncPromise = isConfigured() ? _dbSync() : Promise.resolve();
+if (!isConfigured()) _applyAdminState(true);
 
 /* current-mode color shorthand */
 function C() { return S[S.darkMode ? 'dark' : 'light']; }
@@ -483,8 +478,7 @@ map.on('movestart', (e) => {
 
 map.on('load', () => {
   clearTimeout(_mapLoadTimeout);
-  hideLoading();
-  map.addLayer(modelLayer);
+  hideLoading(); // Tiles siap → loading hilang langsung
 
   // Compass button: clone untuk hapus semua listener MapLibre (touch & click),
   // lalu pasang handler kita sendiri untuk toggle top-down ↔ tampilan 3D
@@ -510,6 +504,10 @@ map.on('load', () => {
     const mobile = isMobile();
     map.easeTo({ center: [S.lon, S.lat], zoom: mobile ? 17 : 18, pitch: mobile ? 45 : 58, bearing: -30, duration: 1600, easing: ease });
   }, 300);
+
+  // Tunggu sync Supabase selesai (biasanya sudah selesai saat tiles load),
+  // lalu baru tambahkan layer 3D
+  _dbSyncPromise.then(() => { map.addLayer(modelLayer); });
 });
 
 /* ── RAYCASTING ──────────────────────────────────────────── */
