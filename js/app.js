@@ -415,7 +415,11 @@ function setupMaterials(root) {
     // Track floor meshes for targeted color updates
     if (isFloor) floorMeshes.push(child);
 
-    // Keep GLB textures on floor/store meshes; clear textures on other/escalator
+    // Floor meshes with a baked texture: strip the map so plain color applies
+    if (mat.map && isFloor) {
+      mat.map = null;
+    }
+    // Keep GLB textures on store meshes; clear textures on other/escalator
     if (mat.map && !isEscalator && child.userData.type !== 'other') return;
 
     if (isFloor) {
@@ -471,7 +475,7 @@ function getObjectType(obj, stopAt) {
   let isFloor = false, isStore = false, isEscalator = false, cur = obj;
   while (cur && cur !== stopAt) {
     const name = cur.name?.toLowerCase() || '';
-    if (name.includes('floor'))                              isFloor      = true;
+    if (name.includes('floor') || name.includes('lantai'))   isFloor      = true;
     if (name.includes('toko'))                               isStore      = true;
     if (name.includes('escalat') || name.includes('eskalat')) isEscalator = true;
     cur = cur.parent;
