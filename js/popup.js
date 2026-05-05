@@ -718,7 +718,8 @@ function _loadModelPanel(storeKey) {
       _tempEdit.baseColor = colorEl.value;
       _updateBaseColorLabel(true);
       _sm.getStoreData(storeKey)?.bases?.forEach(m => {
-        if (!m.material.map) m.material.color.set(colorEl.value);
+        m.material.color.set(colorEl.value);
+        m.material.needsUpdate = true;
       });
     };
   }
@@ -738,7 +739,8 @@ function spResetBaseColor() {
   if (colorEl) colorEl.value = defaultColor;
   _updateBaseColorLabel(false);
   _sm.getStoreData(_activeKey)?.bases?.forEach(m => {
-    if (!m.material.map) m.material.color.set(defaultColor);
+    m.material.color.set(defaultColor);
+    m.material.needsUpdate = true;
   });
 }
 

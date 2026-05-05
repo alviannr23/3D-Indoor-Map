@@ -150,7 +150,8 @@ export class StoreManager {
       // Apply color immediately to existing meshes
       const color = store.baseColor || this._cachedColor;
       this.storeMeshes[storeKey]?.bases?.forEach(m => {
-        if (!m.material.map) m.material.color.set(color);
+        m.material.color.set(color);
+        m.material.needsUpdate = true;
       });
     }
 
@@ -249,7 +250,8 @@ export class StoreManager {
       mesh.position.x = o.x + (base.offset?.x || 0);
       mesh.position.z = o.z + (base.offset?.z || 0);
       mesh.scale.set(base.scale?.x || 1, base.scale?.z || 1, 1);
-      if (!mesh.material.map) mesh.material.color.set(original.baseColor || this._cachedColor);
+      mesh.material.color.set(original.baseColor || this._cachedColor);
+      mesh.material.needsUpdate = true;
     });
   }
 
