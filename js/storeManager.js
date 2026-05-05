@@ -261,7 +261,7 @@ export class StoreManager {
     Object.entries(this.storeMeshes).forEach(([key, data]) => {
       const store = Utils.findStore(key);
       if (store?.baseColor) return; // skip stores with custom color
-      data.bases?.forEach(m => { if (!m.material.map) m.material.color.set(color); });
+      data.bases?.forEach(m => { m.material.color.set(color); m.material.needsUpdate = true; });
     });
   }
 }
