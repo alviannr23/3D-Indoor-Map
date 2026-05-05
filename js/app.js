@@ -1536,8 +1536,9 @@ function _buildCategoryAdminUI() {
   el.innerHTML = S.categoryFilters.map((c, i) => `
     <div class="cat-admin-row">
       <input class="cat-admin-icon" type="text" maxlength="4"
-        value="${(c.icon || '').replace(/"/g, '&quot;')}" placeholder="😀"
-        oninput="window._catSetIcon(${i}, this.value)" />
+        value="${(c.icon || '').replace(/"/g, '&quot;')}" placeholder=""
+        oninput="window._catSetIcon(${i}, this.value)"
+        onblur="window._catSave()" />
       <input class="cat-admin-label" type="text"
         value="${(c.label || '').replace(/"/g, '&quot;')}" placeholder="Nama kategori"
         oninput="window._catSetLabel(${i}, this.value)"

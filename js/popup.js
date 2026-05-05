@@ -21,11 +21,12 @@ let _dragCleanup = null;
 /* ── PUBLIC API ──────────────────────────────────────────── */
 export function init(storeManager) {
   _sm = storeManager;
-  window.closeStorePopup = close;
-  window.switchTab       = switchTab;
-  window.deletePhoto     = deletePhoto;
-  window.spAddBase       = spAddBase;
-  window.spResetBases    = spResetBases;
+  window.closeStorePopup   = close;
+  window.switchTab         = switchTab;
+  window.deletePhoto       = deletePhoto;
+  window.spAddBase         = spAddBase;
+  window.spResetBases      = spResetBases;
+  window.spResetBaseColor  = spResetBaseColor;
 }
 
 export function open(storeKey) {
@@ -438,6 +439,7 @@ async function _saveEditMode(storeKey) {
       baseIndex:    Utils.getFormValue('baseIndex'),
       ...(_tempEdit?.newLogo     ? { newLogo:     _tempEdit.newLogo     } : {}),
       ...(_tempEdit?.baseTexture ? { baseTexture: _tempEdit.baseTexture, baseIndex: _tempEdit.baseIndex } : {}),
+      ...('baseColor' in (_tempEdit || {}) ? { baseColor: _tempEdit.baseColor } : {}),
     };
 
     // Upload data: URLs to Supabase Storage (if configured)
@@ -704,6 +706,40 @@ function _loadModelPanel(storeKey) {
       reader.readAsDataURL(file);
     };
   }
+
+  // Base color picker
+  const store    = Utils.findStore(storeKey);
+  const colorEl  = _el('sp-base-color');
+  if (colorEl) {
+    colorEl.value = store?.baseColor || _sm._cachedColor;
+    _updateBaseColorLabel(!!store?.baseColor);
+    colorEl.oninput = () => {
+      _tempEdit = _tempEdit || {};
+      _tempEdit.baseColor = colorEl.value;
+      _updateBaseColorLabel(true);
+      _sm.getStoreData(storeKey)?.bases?.forEach(m => {
+        if (!m.material.map) m.material.color.set(colorEl.value);
+      });
+    };
+  }
+}
+
+function _updateBaseColorLabel(isCustom) {
+  const lbl = _el('sp-base-color-label');
+  if (lbl) lbl.textContent = isCustom ? 'Custom' : 'Mengikuti default';
+}
+
+function spResetBaseColor() {
+  if (!_activeKey) return;
+  _tempEdit = _tempEdit || {};
+  _tempEdit.baseColor = null;
+  const defaultColor = _sm._cachedColor;
+  const colorEl = _el('sp-base-color');
+  if (colorEl) colorEl.value = defaultColor;
+  _updateBaseColorLabel(false);
+  _sm.getStoreData(_activeKey)?.bases?.forEach(m => {
+    if (!m.material.map) m.material.color.set(defaultColor);
+  });
 }
 
 function _updateBaseIndexLimit(storeKey) {

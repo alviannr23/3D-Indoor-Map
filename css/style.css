@@ -682,6 +682,21 @@ input[type=range].range-slider::-moz-range-thumb {
 }
 .sp-hint-text { font-size: 11px; color: #475569; margin-bottom: 12px; line-height: 1.5; }
 
+.sp-base-color-row {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+}
+.sp-base-color-row input[type="color"] {
+  width: 32px; height: 28px; padding: 1px 2px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+  cursor: pointer; flex-shrink: 0;
+}
+.sp-base-color-lbl {
+  flex: 1; font-size: 11px; color: #64748b;
+}
+.sp-base-color-row .sp-btn-secondary {
+  width: auto; padding: 5px 10px; font-size: 11px;
+}
+
 .sp-btn-secondary {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; padding: 8px 10px;

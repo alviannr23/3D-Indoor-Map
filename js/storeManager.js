@@ -69,7 +69,7 @@ export class StoreManager {
   /* ── BASE MESHES ───────────────────────────────────────── */
   createBaseMeshes(store, storeKey, center, topY, parent = null) {
     const target     = parent || this.scene;
-    const storeColor = this._cachedColor;
+    const storeColor = store.baseColor || this._cachedColor;
     const bases = [];
 
     (store.bases || [{ offset: { x: 0, z: 0 }, scale: { x: 1, z: 1 } }]).forEach(bc => {
@@ -145,6 +145,14 @@ export class StoreManager {
     store.logoScale    = fd.logoScale;
     store.logoRotation = fd.logoRotation;
     if (fd.newLogo) store.logo = fd.newLogo;
+    if ('baseColor' in fd) {
+      store.baseColor = fd.baseColor || null;
+      // Apply color immediately to existing meshes
+      const color = store.baseColor || this._cachedColor;
+      this.storeMeshes[storeKey]?.bases?.forEach(m => {
+        if (!m.material.map) m.material.color.set(color);
+      });
+    }
 
     const bi = fd.baseIndex;
     if (store.bases?.[bi]) {
@@ -241,13 +249,16 @@ export class StoreManager {
       mesh.position.x = o.x + (base.offset?.x || 0);
       mesh.position.z = o.z + (base.offset?.z || 0);
       mesh.scale.set(base.scale?.x || 1, base.scale?.z || 1, 1);
+      if (!mesh.material.map) mesh.material.color.set(original.baseColor || this._cachedColor);
     });
   }
 
   /* ── UPDATE ALL BASE COLORS ────────────────────────────── */
   updateBaseColors(color) {
     this._cachedColor = color;
-    Object.values(this.storeMeshes).forEach(data => {
+    Object.entries(this.storeMeshes).forEach(([key, data]) => {
+      const store = Utils.findStore(key);
+      if (store?.baseColor) return; // skip stores with custom color
       data.bases?.forEach(m => { if (!m.material.map) m.material.color.set(color); });
     });
   }
