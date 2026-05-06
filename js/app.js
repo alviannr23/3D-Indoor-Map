@@ -399,6 +399,19 @@ function _loadSingleFloor(scene, i) {
 }
 
 /* ── MATERIAL SETUP ──────────────────────────────────────── */
+// Returns true if the mesh is a flat horizontal face (Y extent ≈ 0, large XZ area).
+// Used as fallback floor detection for SketchUp loose geometry with no group name.
+function _isFlatHorizontalMesh(child) {
+  const geo = child.geometry;
+  if (!geo) return false;
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  const { min, max } = geo.boundingBox;
+  const dy = max.y - min.y;
+  const dx = max.x - min.x;
+  const dz = max.z - min.z;
+  return dy < 0.02 && (dx * dz) > 0.05;
+}
+
 function _applyMatColor(child, color) {
   // Handles both single-material and array-material meshes
   const mats = Array.isArray(child.material) ? child.material : [child.material];
@@ -426,7 +439,7 @@ function setupMaterials(root) {
     const mat = child.material;
     if (!mat) return;
 
-    const { isFloor, isStore, isEscalator } = getObjectType(child, root.parent);
+    let { isFloor, isStore, isEscalator } = getObjectType(child, root.parent);
 
     console.log('[setupMaterials]', child.name, '| floor:', isFloor, 'store:', isStore, 'esc:', isEscalator, '| map:', !!mat.map, '| vertexColors:', mat.vertexColors);
 
@@ -434,6 +447,13 @@ function setupMaterials(root) {
     if (isFloor)      child.userData.type = 'floor';
     else if (isStore) child.userData.type = 'store';
     else              child.userData.type = 'other';
+
+    // Fallback: SketchUp loose geometry (no group name) that is flat horizontal → treat as floor
+    if (!isFloor && !isStore && !isEscalator && _isFlatHorizontalMesh(child)) {
+      console.log('[setupMaterials] geometry-floor (flat fallback):', child.name);
+      child.userData.type = 'floor';
+      isFloor = true;
+    }
 
     // Track floor meshes for targeted color updates
     if (isFloor) {
