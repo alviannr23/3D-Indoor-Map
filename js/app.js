@@ -399,13 +399,35 @@ function _loadSingleFloor(scene, i) {
 }
 
 /* ── MATERIAL SETUP ──────────────────────────────────────── */
+function _applyMatColor(child, color) {
+  // Handles both single-material and array-material meshes
+  const mats = Array.isArray(child.material) ? child.material : [child.material];
+  mats.forEach(m => {
+    if (!m) return;
+    if (m.map) m.map = null;
+    m.color.set(color);
+    m.roughness   = 1;
+    m.metalness   = 0;
+    m.needsUpdate = true;
+  });
+}
+
 function setupMaterials(root) {
   root.traverse((child) => {
     if (!child.isMesh) return;
+
+    // Normalize array materials to single material so all code paths work uniformly
+    if (Array.isArray(child.material)) {
+      console.log('[setupMaterials] array material on', child.name, '— flattening', child.material.length, 'slots');
+      child.material = child.material[0] ?? new THREE.MeshStandardMaterial();
+    }
+
     const mat = child.material;
     if (!mat) return;
 
     const { isFloor, isStore, isEscalator } = getObjectType(child, root.parent);
+
+    console.log('[setupMaterials]', child.name, '| floor:', isFloor, 'store:', isStore, 'esc:', isEscalator, '| map:', !!mat.map);
 
     // Tag type first so applyMapColors can always find this mesh
     if (isFloor)      child.userData.type = 'floor';
@@ -413,18 +435,17 @@ function setupMaterials(root) {
     else              child.userData.type = 'other';
 
     // Track floor meshes for targeted color updates
-    if (isFloor) floorMeshes.push(child);
-
-    // Floor meshes with a baked texture: strip the map so plain color applies
-    if (mat.map && isFloor) {
-      mat.map = null;
-    }
-    // Keep GLB textures on store meshes; clear textures on other/escalator
-    if (mat.map && !isEscalator && child.userData.type !== 'other') return;
-
     if (isFloor) {
-      mat.color.set(C().floorColor);
-    } else if (isStore) {
+      floorMeshes.push(child);
+      // Always clear baked texture and apply floor color so color picker works
+      _applyMatColor(child, C().floorColor);
+      return;
+    }
+
+    // Keep GLB textures on store meshes; clear textures on other/escalator
+    if (mat.map && !isEscalator) return;
+
+    if (isStore) {
       mat.color.set(C().storeColor);
     } else {
       mat.color.set(C().defaultColor);
@@ -1213,9 +1234,11 @@ window.applyMapColors = () => {
   C().storeColor   = document.getElementById('inp-store-color').value;
   persist();
 
-  floorMeshes.forEach(m => {
-    m.material.color.set(C().floorColor);
-    m.material.needsUpdate = true;
+  console.log('[applyMapColors] floorMeshes count:', floorMeshes.length, '| color:', C().floorColor);
+  floorMeshes.forEach((m, i) => {
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    console.log(`  [${i}] ${m.name} | matCount:${mats.length} | type:${m.userData.type}`);
+    mats.forEach(mat => { if (!mat) return; mat.color.set(C().floorColor); mat.needsUpdate = true; });
   });
 
   if (modelLayer.scene) {
