@@ -404,7 +404,8 @@ function _applyMatColor(child, color) {
   const mats = Array.isArray(child.material) ? child.material : [child.material];
   mats.forEach(m => {
     if (!m) return;
-    if (m.map) m.map = null;
+    if (m.map)          m.map          = null;
+    if (m.vertexColors) m.vertexColors = false; // SketchUp bakes face colors as vertex colors
     m.color.set(color);
     m.roughness   = 1;
     m.metalness   = 0;
@@ -427,7 +428,7 @@ function setupMaterials(root) {
 
     const { isFloor, isStore, isEscalator } = getObjectType(child, root.parent);
 
-    console.log('[setupMaterials]', child.name, '| floor:', isFloor, 'store:', isStore, 'esc:', isEscalator, '| map:', !!mat.map);
+    console.log('[setupMaterials]', child.name, '| floor:', isFloor, 'store:', isStore, 'esc:', isEscalator, '| map:', !!mat.map, '| vertexColors:', mat.vertexColors);
 
     // Tag type first so applyMapColors can always find this mesh
     if (isFloor)      child.userData.type = 'floor';
