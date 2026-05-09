@@ -759,10 +759,9 @@ function _openEditMode(storeKey) {
     if (nameLabel) nameLabel.textContent = 'Nama Toko';
   }
 
-  const isTenant = _isTenantEdit(store);
+  const isTenant      = _isTenantEdit(store);
+  const isEventTenant = isTenant && type === 'event';
   _el('store-popup').classList.toggle('popup-tenant-mode', isTenant);
-  const modelTab = document.querySelector('#sp-tabs [data-tab="model"]');
-  if (modelTab) modelTab.style.display = isTenant ? 'none' : '';
 
   _el('sp-view').classList.add('hidden');
   _el('sp-edit').classList.remove('hidden');
@@ -770,18 +769,33 @@ function _openEditMode(storeKey) {
   _el('sp-popup-overlay').classList.add('hidden');
   _enableDrag();
 
-  _loadInfoPanel(store, storeKey);
-  _loadPhotosPanel(store);
-  if (type === 'store') {
-    _loadHoursPanel(store);
-    _loadPromosPanel(store);
+  if (isEventTenant) {
+    // Init events in tempEdit early (normally done by _loadEventsPanel)
+    _tempEdit.events = (store.events || []).map(ev => ({
+      ...ev,
+      photos: Array.isArray(ev.photos) ? [...ev.photos] : (ev.image ? [ev.image] : []),
+    }));
+    // Only show Info + Foto tabs
+    document.querySelectorAll('#sp-tabs .sp-tab').forEach(t => {
+      const hide = t.dataset.tab !== 'info' && t.dataset.tab !== 'photos';
+      t.style.display = hide ? 'none' : '';
+    });
+    _loadEventTenantInfoPanel(window.__tenantEventIdx);
+    _loadEventTenantPhotosPanel(window.__tenantEventIdx);
+    switchTab('info');
+  } else {
+    // Restore all tab visibility (in case previously hidden by event tenant)
+    document.querySelectorAll('#sp-tabs .sp-tab').forEach(t => t.style.display = '');
+    _loadInfoPanel(store, storeKey);
+    _loadPhotosPanel(store);
+    if (type === 'store') {
+      _loadHoursPanel(store);
+      _loadPromosPanel(store);
+    }
+    if (type === 'event') _loadEventsPanel(store);
+    _loadModelPanel(storeKey);
+    switchTab('info');
   }
-  if (type === 'event') {
-    _loadEventsPanel(store);
-    if (_isTenantEdit(store)) { switchTab('events'); }
-  }
-  _loadModelPanel(storeKey);
-  if (type !== 'event' || !_isTenantEdit(store)) switchTab('info');
 
   _el('sp-save-btn').onclick = () => _saveEditMode(storeKey);
   _el('sp-back-btn').onclick = _cancelEditMode;
@@ -819,6 +833,8 @@ function _cancelEditMode() {
   _tempEdit = null;
   _disableDrag();
   _el('store-popup').classList.remove('popup-tenant-mode');
+  _resetEventTenantPanels();
+  document.querySelectorAll('#sp-tabs .sp-tab').forEach(t => t.style.display = '');
   _el('sp-popup-overlay').classList.remove('hidden');
   const store = Utils.findStore(_activeKey);
   if (store) _renderViewMode(store, _activeKey);
@@ -988,6 +1004,8 @@ async function _saveEditMode(storeKey) {
 
     _disableDrag();
     _el('store-popup').classList.remove('popup-tenant-mode');
+    _resetEventTenantPanels();
+    document.querySelectorAll('#sp-tabs .sp-tab').forEach(t => t.style.display = '');
     _el('sp-popup-overlay').classList.remove('hidden');
     _showView();
   } finally {
@@ -1234,6 +1252,146 @@ function _renderPromosEditor() {
       });
     };
   });
+}
+
+/* ── EVENT TENANT PANELS ─────────────────────────────────── */
+function _resetEventTenantPanels() {
+  const panel = _el('sp-panel-info');
+  if (panel) {
+    panel.classList.remove('sp-event-tenant-mode');
+    panel.querySelector('.sp-event-tenant-overlay')?.remove();
+  }
+  const hint = _el('sp-panel-photos')?.querySelector('.sp-hint-text');
+  if (hint) hint.textContent = 'Maks. 5 foto · Dikompres otomatis ke JPEG';
+}
+
+function _loadEventTenantInfoPanel(eventIdx) {
+  const panel = _el('sp-panel-info');
+  if (!panel) return;
+  panel.classList.add('sp-event-tenant-mode');
+
+  let overlay = panel.querySelector('.sp-event-tenant-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'sp-event-tenant-overlay';
+    panel.appendChild(overlay);
+  }
+
+  const ev = _tempEdit.events?.[eventIdx] || {};
+  overlay.innerHTML = `
+    <div class="sp-field-full">
+      <label>Nama Event</label>
+      <input type="text" data-event-field="name" data-idx="${eventIdx}"
+        placeholder="Nama event..." value="${_esc(ev.name || '')}" />
+    </div>
+    <div class="sp-field-full">
+      <label>Kategori</label>
+      <input type="text" data-event-field="category" data-idx="${eventIdx}"
+        placeholder="Konser, Expo, Bazaar..." value="${_esc(ev.category || '')}" />
+    </div>
+    <div class="sp-field-row">
+      <div class="sp-field">
+        <label>Tanggal Mulai</label>
+        <input type="date" data-event-field="startDate" data-idx="${eventIdx}" value="${_esc(ev.startDate || '')}" />
+      </div>
+      <div class="sp-field">
+        <label>Jam Mulai</label>
+        <input type="time" data-event-field="startTime" data-idx="${eventIdx}" value="${_esc(ev.startTime || '')}" />
+      </div>
+    </div>
+    <div class="sp-field-row">
+      <div class="sp-field">
+        <label>Tanggal Selesai</label>
+        <input type="date" data-event-field="endDate" data-idx="${eventIdx}" value="${_esc(ev.endDate || '')}" />
+      </div>
+      <div class="sp-field">
+        <label>Jam Selesai</label>
+        <input type="time" data-event-field="endTime" data-idx="${eventIdx}" value="${_esc(ev.endTime || '')}" />
+      </div>
+    </div>
+    <div class="sp-field-full">
+      <label>HTM / Tiket</label>
+      <input type="text" data-event-field="htm" data-idx="${eventIdx}"
+        placeholder="Rp 50.000 / Gratis" value="${_esc(ev.htm || '')}" />
+    </div>
+    <div class="sp-field-full">
+      <label>Deskripsi</label>
+      <textarea data-event-field="description" data-idx="${eventIdx}"
+        placeholder="Deskripsi singkat event..." rows="4">${_esc(ev.description || '')}</textarea>
+    </div>
+    <div class="sp-field-row">
+      <div class="sp-field">
+        <label>Telepon</label>
+        <input type="tel" data-event-field="phone" data-idx="${eventIdx}"
+          placeholder="08..." value="${_esc(ev.phone || '')}" />
+      </div>
+      <div class="sp-field">
+        <label>Website</label>
+        <input type="url" data-event-field="website" data-idx="${eventIdx}"
+          placeholder="https://..." value="${_esc(ev.website || '')}" />
+      </div>
+    </div>
+    <div class="sp-field-full">
+      <label>No. WA Penyelenggara</label>
+      <input type="tel" data-event-field="organizerPhone" data-idx="${eventIdx}"
+        placeholder="628..." value="${_esc(ev.organizerPhone || '')}" />
+    </div>
+  `;
+
+  overlay.querySelectorAll('[data-event-field]').forEach(el => {
+    el.oninput = () => {
+      const fld = el.dataset.eventField;
+      if (_tempEdit.events?.[eventIdx] != null) _tempEdit.events[eventIdx][fld] = el.value;
+    };
+  });
+}
+
+function _loadEventTenantPhotosPanel(eventIdx) {
+  const hint = _el('sp-panel-photos')?.querySelector('.sp-hint-text');
+  if (hint) hint.textContent = 'Foto event · Maks. 5 foto · Dikompres otomatis ke JPEG';
+
+  const grid       = _el('sp-photo-grid');
+  const addBtn     = _el('sp-add-photo-btn');
+  const photoInput = _el('sp-photo-input');
+
+  const getPhotos = () => _tempEdit.events?.[eventIdx]?.photos || [];
+
+  function renderGrid() {
+    if (!grid) return;
+    grid.innerHTML = getPhotos().map((src, i) =>
+      `<div class="sp-pgrid-item">
+        <img src="${src}" class="sp-pgrid-img" />
+        <button class="sp-pgrid-del" data-evp-del="${i}">✕</button>
+      </div>`
+    ).join('');
+    grid.querySelectorAll('[data-evp-del]').forEach(btn => {
+      btn.onclick = () => {
+        const photos = _tempEdit.events?.[eventIdx]?.photos;
+        if (photos) { photos.splice(+btn.dataset.evpDel, 1); renderGrid(); }
+      };
+    });
+  }
+
+  renderGrid();
+
+  if (addBtn && photoInput) {
+    photoInput.multiple = true;
+    photoInput.value    = '';
+    addBtn.onclick      = () => photoInput.click();
+    photoInput.onchange = async (e) => {
+      const files   = Array.from(e.target.files);
+      if (!files.length) return;
+      const photos    = _tempEdit.events?.[eventIdx]?.photos;
+      if (!photos) return;
+      const remaining = 5 - photos.length;
+      if (remaining <= 0) { alert('Maksimal 5 foto.'); photoInput.value = ''; return; }
+      const toAdd = files.slice(0, remaining);
+      if (files.length > remaining) alert(`Hanya ${remaining} foto lagi yang bisa ditambahkan.`);
+      for (const f of toAdd) photos.push(await _compressImage(f));
+      renderGrid();
+      photoInput.value = '';
+    };
+  }
 }
 
 /* ── EVENTS PANEL ────────────────────────────────────────── */

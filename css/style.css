@@ -1633,6 +1633,35 @@ body.is-admin .admin-only { display: revert; }
 /* ── Tenant edit: hide admin-only edit fields ────────────── */
 .popup-tenant-mode .admin-edit-only { display: none !important; }
 
+/* ── Event tenant info panel overlay ────────────────────── */
+#sp-panel-info.sp-event-tenant-mode > *:not(.sp-event-tenant-overlay) {
+  display: none !important;
+}
+.sp-event-tenant-overlay {
+  display: flex;
+  flex-direction: column;
+}
+.sp-event-tenant-overlay .sp-field-full { margin-bottom: 10px; }
+.sp-event-tenant-overlay .sp-field-row  { display: flex; gap: 8px; margin-bottom: 8px; }
+.sp-event-tenant-overlay .sp-field      { flex: 1; min-width: 0; }
+.sp-event-tenant-overlay label {
+  display: block; font-size: 10px; color: #64748b;
+  font-weight: 600; letter-spacing: 0.3px; margin-bottom: 4px;
+}
+.sp-event-tenant-overlay input,
+.sp-event-tenant-overlay textarea {
+  width: 100%; box-sizing: border-box;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px; color: #e2e8f0; padding: 7px 10px;
+  font-size: 13px; font-family: inherit;
+  transition: border-color 0.15s;
+}
+.sp-event-tenant-overlay input:focus,
+.sp-event-tenant-overlay textarea:focus {
+  outline: none; border-color: rgba(99,102,241,0.5);
+}
+.sp-event-tenant-overlay textarea { resize: vertical; min-height: 80px; }
+
 /* ── Admin login button (bottom of panel) ────────────────── */
 .admin-login-btn { display: none; }
 body.show-admin-btn .admin-login-btn,
