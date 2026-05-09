@@ -101,14 +101,16 @@ async function _dbSync() {
     const currentUser = await getUser().catch(() => null);
     _applyAuthState(currentUser);
     onAuthChange(user => _applyAuthState(user));
+    _checkTenantSession();
   } catch (e) {
     console.warn('[DB] Startup sync gagal, pakai localStorage:', e);
     _applyAdminState(true);
+    _checkTenantSession();
   }
 }
 
 const _dbSyncPromise = isConfigured() ? _dbSync() : Promise.resolve();
-if (!isConfigured()) _applyAdminState(true);
+if (!isConfigured()) { _applyAdminState(true); _checkTenantSession(); }
 
 /* current-mode color shorthand */
 function C() { return S[S.darkMode ? 'dark' : 'light']; }
@@ -1208,56 +1210,64 @@ window.closeSettings = () => {
    AUTH / ADMIN
    ══════════════════════════════════════════════════════════ */
 
-/**
- * Resolve a Supabase user object into { isAdmin, isTenant, match }.
- * A user whose email is listed as tenantEmail in any store is a TENANT,
- * never an admin — even if they log in via password.
- * Passing true (dev/offline fallback) forces admin mode.
- */
-function _resolveAuthRole(user) {
-  if (user === true) return { isAdmin: true, isTenant: false, match: null };
-  if (!user) return { isAdmin: false, isTenant: false, match: null };
-  const cfg   = Utils.getStoreConfig();
-  const match = cfg.find(s => s.tenantEmail && s.tenantEmail === user.email);
-  if (match) return { isAdmin: false, isTenant: true, match };
-  return { isAdmin: true, isTenant: false, match: null };
-}
-
+/* ── Supabase auth → hanya untuk admin ───────────────────── */
 function _applyAuthState(user) {
-  const { isAdmin, isTenant, match } = _resolveAuthRole(user);
-
-  // Admin state
+  // Any Supabase-authenticated user is treated as admin.
+  // Tenants use a separate local session (email+password vs store config).
+  const isAdmin = user === true || !!user;
   _isAdmin = isAdmin;
   window.__isAdmin = isAdmin;
   document.body.classList.toggle('is-admin', isAdmin);
   const label = document.getElementById('admin-btn-label');
   if (label) label.textContent = isAdmin ? 'Logout' : 'Admin';
+  // Admin login takes priority — clear any tenant session
+  if (isAdmin) _clearTenantState();
+}
 
-  // Tenant state
-  window.__tenantEmail = isTenant ? (user?.email || null) : null;
-  document.body.classList.toggle('is-tenant', isTenant);
+function _applyAdminState(user) { _applyAuthState(user); }
+
+/* ── Tenant local session ─────────────────────────────────── */
+function _applyTenantDirectState(email, match) {
+  window.__tenantEmail = email;
+  document.body.classList.add('is-tenant');
   const badge = document.getElementById('tenant-badge');
   if (badge) {
-    badge.classList.toggle('hidden', !isTenant);
-    if (isTenant) {
-      const storeEl = badge.querySelector('.tb-store');
-      if (storeEl) storeEl.textContent = match?.name || user.email;
-    }
+    badge.classList.remove('hidden');
+    const storeEl = badge.querySelector('.tb-store');
+    if (storeEl) storeEl.textContent = match?.name || email;
   }
 }
 
-// Keep old name as alias so no other call-sites break
-function _applyAdminState(user) { _applyAuthState(user); }
-function _applyTenantState()    { /* merged into _applyAuthState */ }
+function _clearTenantState() {
+  localStorage.removeItem('imap_tenant');
+  window.__tenantEmail = null;
+  document.body.classList.remove('is-tenant');
+  const badge = document.getElementById('tenant-badge');
+  if (badge) badge.classList.add('hidden');
+}
+
+function _checkTenantSession() {
+  if (window.__isAdmin) return;
+  try {
+    const raw = localStorage.getItem('imap_tenant');
+    if (!raw) return;
+    const { email } = JSON.parse(raw) || {};
+    if (!email) return;
+    const cfg   = Utils.getStoreConfig();
+    const match = cfg.find(s => s.tenantEmail === email);
+    if (match) _applyTenantDirectState(email, match);
+    else localStorage.removeItem('imap_tenant'); // email sudah tidak terdaftar
+  } catch {}
+}
 
 window.openTenantLogin = () => {
   const modal = document.getElementById('tenant-login-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
-  document.getElementById('tenant-email-step')?.classList.remove('hidden');
-  document.getElementById('tenant-check-step')?.classList.add('hidden');
   const emailEl = document.getElementById('tenant-login-email');
+  const passEl  = document.getElementById('tenant-login-password');
   if (emailEl) emailEl.value = '';
+  if (passEl)  passEl.value  = '';
   const errEl = document.getElementById('tenant-login-error');
   if (errEl) errEl.textContent = '';
   setTimeout(() => emailEl?.focus(), 80);
@@ -1267,35 +1277,26 @@ window.closeTenantLogin = () => {
   document.getElementById('tenant-login-modal')?.classList.add('hidden');
 };
 
-window.doTenantLogin = async () => {
-  const emailEl = document.getElementById('tenant-login-email');
-  const email   = emailEl?.value.trim();
-  if (!email) return;
-  const btn = document.getElementById('tenant-submit-btn');
-  const err = document.getElementById('tenant-login-error');
+window.doTenantLogin = () => {
+  const email    = document.getElementById('tenant-login-email')?.value.trim();
+  const password = document.getElementById('tenant-login-password')?.value;
+  const err      = document.getElementById('tenant-login-error');
+  if (!email || !password) return;
 
-  // Validate email is registered as a tenant before sending OTP
   const cfg   = Utils.getStoreConfig();
-  const match = cfg.find(s => s.tenantEmail === email);
+  const match = cfg.find(s => s.tenantEmail === email && s.tenantPassword === password);
   if (!match) {
-    if (err) err.textContent = 'Email tidak terdaftar sebagai penyewa. Hubungi admin.';
+    if (err) err.textContent = 'Email atau password salah.';
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Mengirim...'; }
-  const { error } = await signInWithOtp(email);
-  if (btn) { btn.disabled = false; btn.textContent = 'Kirim Link Masuk'; }
-  if (error) {
-    if (err) err.textContent = error;
-    return;
-  }
-  document.getElementById('tenant-email-step')?.classList.add('hidden');
-  document.getElementById('tenant-check-step')?.classList.remove('hidden');
+  localStorage.setItem('imap_tenant', JSON.stringify({ email }));
+  _applyTenantDirectState(email, match);
+  window.closeTenantLogin();
 };
 
-window.doTenantLogout = async () => {
-  await signOut();
-  // _applyTenantState dipanggil otomatis oleh onAuthChange
+window.doTenantLogout = () => {
+  _clearTenantState();
 };
 
 window.openAdminLogin = () => {

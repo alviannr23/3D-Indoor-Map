@@ -817,7 +817,8 @@ async function _saveEditMode(storeKey) {
       facilityType:   _el('sp-facility-type')?.value || '',
       accessibility:  _el('sp-accessibility')?.value.trim() || '',
       isEmpty:        editType !== 'fasilitas' ? !!_el('sp-is-empty')?.checked : undefined,
-      tenantEmail:    editType !== 'fasilitas' ? (_el('sp-tenant-email')?.value.trim() || '') : undefined,
+      tenantEmail:    editType !== 'fasilitas' ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
+      tenantPassword: editType !== 'fasilitas' ? (_el('sp-tenant-password')?.value         || '') : undefined,
       photos:         [...(_tempEdit?.photos || [])],
       promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
       events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
@@ -1004,6 +1005,8 @@ function _loadInfoPanel(store, storeKey) {
   const tenantWrap    = _el('sp-tenant-email-wrap');
   if (isEmptyEl)     isEmptyEl.checked  = !!store.isEmpty;
   if (tenantEmailEl) tenantEmailEl.value = store.tenantEmail || '';
+  const tenantPassEl = _el('sp-tenant-password');
+  if (tenantPassEl)  tenantPassEl.value  = store.tenantPassword || '';
   if (tenantWrap)    tenantWrap.style.display = store.isEmpty ? 'none' : '';
   if (isEmptyEl) {
     isEmptyEl.onchange = () => {

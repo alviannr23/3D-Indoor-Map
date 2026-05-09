@@ -39,9 +39,10 @@ export class StoreManager {
       } else if (type === 'event') {
         store.events = [];
       } else {
-        store.promos    = [];
-        store.isEmpty   = false;
-        store.tenantEmail = '';
+        store.promos      = [];
+        store.isEmpty     = false;
+        store.tenantEmail    = '';
+        store.tenantPassword = '';
       }
       cfg.push(store);
       Utils.saveStoreConfig(cfg);
@@ -177,7 +178,8 @@ export class StoreManager {
         }
       }
     }
-    if (fd.tenantEmail   !== undefined) store.tenantEmail   = fd.tenantEmail;
+    if (fd.tenantEmail    !== undefined) store.tenantEmail    = fd.tenantEmail;
+    if (fd.tenantPassword !== undefined) store.tenantPassword = fd.tenantPassword;
     if (fd.promos        !== undefined) store.promos        = fd.promos;
     if (fd.events        !== undefined) store.events        = fd.events;
     store.logoOffset   = { x: fd.offsetX, z: fd.offsetZ };

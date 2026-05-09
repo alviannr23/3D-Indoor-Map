@@ -388,8 +388,10 @@
             </label>
             <div class="sp-field-full" id="sp-tenant-email-wrap">
               <label>Email Penyewa</label>
-              <input type="email" id="sp-tenant-email" placeholder="email penyewa..." />
-              <p class="field-hint">Email yang diisi di sini digunakan penyewa untuk login dan edit toko ini.</p>
+              <input type="email" id="sp-tenant-email" placeholder="email@penyewa.com" />
+              <label style="margin-top:8px">Password Penyewa</label>
+              <input type="text" id="sp-tenant-password" placeholder="password untuk login penyewa..." autocomplete="off" />
+              <p class="field-hint">Admin isi email + password di sini. Penyewa pakai keduanya untuk login di "Masuk sebagai Penyewa".</p>
             </div>
           </div>
 
@@ -568,22 +570,17 @@
   <div id="tenant-login-modal" class="hidden">
     <div class="tenant-modal-backdrop" onclick="window.closeTenantLogin?.()"></div>
     <div class="tenant-modal-box">
-      <div id="tenant-email-step">
-        <h3 class="tenant-modal-title">Masuk sebagai Penyewa</h3>
-        <p class="tenant-modal-hint">Masukkan email yang telah didaftarkan admin untuk toko Anda. Kami akan mengirim link masuk ke email tersebut.</p>
-        <input type="email" id="tenant-login-email" class="admin-modal-input" placeholder="email@anda.com"
-               onkeydown="if(event.key==='Enter') window.doTenantLogin?.()"/>
-        <p id="tenant-login-error" class="admin-login-error"></p>
-        <div class="admin-modal-actions">
-          <button class="admin-modal-cancel" onclick="window.closeTenantLogin?.()">Batal</button>
-          <button class="admin-modal-submit" id="tenant-submit-btn" onclick="window.doTenantLogin?.()">Kirim Link Masuk</button>
-        </div>
-      </div>
-      <div id="tenant-check-step" class="hidden">
-        <div class="tenant-check-icon">📬</div>
-        <h3 class="tenant-modal-title">Cek Email Anda</h3>
-        <p class="tenant-modal-hint">Link masuk telah dikirim ke email Anda. Silakan cek inbox atau folder spam, lalu klik link tersebut untuk masuk.</p>
-        <button class="admin-modal-submit" onclick="window.closeTenantLogin?.()">Tutup</button>
+      <h3 class="tenant-modal-title">Masuk sebagai Penyewa</h3>
+      <input type="email" id="tenant-login-email" class="admin-modal-input" placeholder="Email"
+             autocomplete="email"
+             onkeydown="if(event.key==='Enter') document.getElementById('tenant-login-password')?.focus()"/>
+      <input type="password" id="tenant-login-password" class="admin-modal-input" placeholder="Password"
+             autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') window.doTenantLogin?.()"/>
+      <p id="tenant-login-error" class="admin-login-error"></p>
+      <div class="admin-modal-actions">
+        <button class="admin-modal-cancel" onclick="window.closeTenantLogin?.()">Batal</button>
+        <button class="admin-modal-submit" id="tenant-submit-btn" onclick="window.doTenantLogin?.()">Masuk</button>
       </div>
     </div>
   </div>
