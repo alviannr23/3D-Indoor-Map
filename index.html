@@ -112,6 +112,16 @@
 
         <div class="sect-divider"></div>
 
+        <p class="section-label">Kontak Admin (untuk Rental)</p>
+        <div class="sp-field-full">
+          <label>Nomor WhatsApp Admin</label>
+          <input type="tel" id="inp-admin-wa" placeholder="628123456789 (tanpa +)" />
+          <p class="field-hint">Digunakan untuk tombol "Hubungi via WA" pada toko/event yang tersedia disewa.</p>
+        </div>
+        <button class="btn-apply" onclick="saveAdminContact()">Simpan Kontak</button>
+
+        <div class="sect-divider"></div>
+
         <p class="section-label">Warna Objek</p>
         <div class="color-grid">
           <div class="color-item">
@@ -219,6 +229,15 @@
         </button>
       </div>
 
+      <!-- Event context bar (event type only) -->
+      <div class="sp-event-context sp-event-only" id="sp-event-context">
+        <span class="sp-event-context-icon" id="sp-event-context-icon">🎉</span>
+        <div class="sp-event-context-text">
+          <span id="sp-event-context-line">Event sedang berlangsung</span>
+          <span class="sp-event-context-venue" id="sp-event-context-venue"></span>
+        </div>
+      </div>
+
       <!-- Identity: logo + name + edit btn -->
       <div class="sp-identity">
         <div class="sp-logo-circle">
@@ -234,11 +253,28 @@
         </button>
       </div>
 
-      <!-- Status (open/closed) -->
+      <!-- Facility type badge (fasilitas only) -->
+      <div class="sp-facility-badge sp-fasil-only" id="sp-facility-badge"></div>
+
+      <!-- Status (open/closed for store, live for event) — controlled by JS -->
       <div class="sp-status" id="sp-status"></div>
 
-      <!-- Quick action buttons (phone, website) -->
+      <!-- Quick action buttons — controlled by JS (phone/website for store, organizer WA for event) -->
       <div class="sp-quick" id="sp-quick"></div>
+
+      <!-- Empty/rental banner — shown when store/event is marked available -->
+      <div class="sp-rental-banner hidden" id="sp-rental-banner">
+        <div class="sp-rental-icon">🏷️</div>
+        <div class="sp-rental-text">
+          <strong id="sp-rental-title">Tersedia untuk Disewa</strong>
+          <span id="sp-rental-subtitle">Hubungi admin untuk informasi sewa</span>
+        </div>
+        <button class="sp-rental-wa-btn" id="sp-rental-wa-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>
+          Hubungi via WhatsApp
+        </button>
+        <p class="sp-rental-no-wa hidden" id="sp-rental-no-wa">Admin belum mengisi nomor WhatsApp.</p>
+      </div>
 
       <!-- Navigation button -->
       <button class="sp-nav-btn" id="sp-nav-btn">
@@ -248,6 +284,12 @@
 
       <!-- Info list (description, phone, website, hours) -->
       <div class="sp-infolist" id="sp-infolist"></div>
+
+      <!-- Promos (store only) -->
+      <div class="sp-promos sp-store-only" id="sp-promos"></div>
+
+      <!-- Event schedule (event only) -->
+      <div class="sp-events-list sp-event-only" id="sp-events-list"></div>
 
     </div><!-- /sp-view -->
 
@@ -260,14 +302,16 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           Kembali
         </button>
-        <span class="sp-edit-title">Edit Toko</span>
+        <span class="sp-edit-title" id="sp-edit-title">Edit Toko</span>
       </div>
 
       <!-- Tabs -->
       <div class="sp-tabs" id="sp-tabs">
         <button class="sp-tab active" data-tab="info">Info</button>
         <button class="sp-tab" data-tab="photos">Foto</button>
-        <button class="sp-tab" data-tab="hours">Jam</button>
+        <button class="sp-tab sp-store-only" data-tab="hours">Jam</button>
+        <button class="sp-tab sp-store-only" data-tab="promos">Promo</button>
+        <button class="sp-tab sp-event-only" data-tab="events">Event</button>
         <button class="sp-tab" data-tab="model">3D</button>
       </div>
 
@@ -277,25 +321,62 @@
         <!-- Info -->
         <div class="sp-panel" id="sp-panel-info">
           <div class="sp-field-full">
-            <label>Nama Toko</label>
-            <input type="text" id="sp-name" placeholder="Nama toko..." />
+            <label id="sp-name-label">Nama Toko</label>
+            <input type="text" id="sp-name" placeholder="Nama..." />
           </div>
-          <div class="sp-field-full">
+          <div class="sp-field-full sp-store-only">
             <label>Kategori</label>
             <input type="text" id="sp-category" placeholder="Retail, F&amp;B, Elektronik..." />
           </div>
-          <div class="sp-field-full">
-            <label>Deskripsi</label>
-            <textarea id="sp-description" rows="3" placeholder="Deskripsi singkat toko..."></textarea>
+          <div class="sp-field-full sp-fasil-only">
+            <label>Tipe Fasilitas</label>
+            <select id="sp-facility-type">
+              <option value="">— Pilih tipe —</option>
+              <option value="entrance">Pintu Masuk</option>
+              <option value="parking">Parkiran</option>
+              <option value="toilet">Toilet</option>
+              <option value="musholla">Musholla</option>
+              <option value="lift">Lift</option>
+              <option value="escalator">Eskalator</option>
+              <option value="stairs">Tangga</option>
+              <option value="emergency_stairs">Tangga Darurat</option>
+              <option value="atm">ATM</option>
+              <option value="info">Customer Service / Info</option>
+              <option value="other">Lainnya</option>
+            </select>
           </div>
           <div class="sp-field-full">
+            <label>Deskripsi</label>
+            <textarea id="sp-description" rows="3" placeholder="Deskripsi singkat..."></textarea>
+          </div>
+          <div class="sp-field-full sp-fasil-only">
+            <label>Aksesibilitas</label>
+            <input type="text" id="sp-accessibility" placeholder="Ramah kursi roda, dst..." />
+          </div>
+          <div class="sp-field-full sp-store-only">
             <label>Telepon</label>
             <input type="tel" id="sp-phone" placeholder="+62..." />
           </div>
-          <div class="sp-field-full">
+          <div class="sp-field-full sp-store-only">
             <label>Website</label>
             <input type="url" id="sp-website" placeholder="https://..." />
           </div>
+
+          <!-- Rental section — store only (event venues always rentable, no toggle needed) -->
+          <div class="sp-divider sp-store-only"></div>
+          <div class="sp-sect-label sp-store-only">Status Rental</div>
+          <div class="sp-store-only">
+            <label class="sp-rental-toggle">
+              <input type="checkbox" id="sp-is-empty" />
+              <span>Tandai sebagai tersedia untuk disewa (kosong)</span>
+            </label>
+            <div class="sp-field-full" id="sp-tenant-email-wrap">
+              <label>Email Penyewa</label>
+              <input type="email" id="sp-tenant-email" placeholder="email penyewa..." />
+              <p class="field-hint">Email akan digunakan untuk akses login penyewa (akan datang).</p>
+            </div>
+          </div>
+
           <div class="sp-divider"></div>
           <div class="sp-sect-label">Logo 3D</div>
           <input type="file" id="sp-logo-input" accept="image/*" hidden />
@@ -310,6 +391,15 @@
           <div class="sp-field-row">
             <div class="sp-field"><label>Offset X</label><input type="number" id="offsetX" step="0.1" /></div>
             <div class="sp-field"><label>Offset Z</label><input type="number" id="offsetZ" step="0.1" /></div>
+          </div>
+
+          <!-- Delete button — at the very bottom of info panel -->
+          <div class="sp-divider sp-fasil-only-hide"></div>
+          <div class="sp-fasil-only-hide" style="display:flex; justify-content:flex-end">
+            <button type="button" class="sp-btn-danger" id="sp-delete-entity-btn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              Hapus
+            </button>
           </div>
         </div>
 
@@ -327,6 +417,26 @@
         <!-- Hours -->
         <div class="sp-panel hidden" id="sp-panel-hours">
           <div id="sp-hours-edit"></div>
+        </div>
+
+        <!-- Promos (store only) -->
+        <div class="sp-panel hidden" id="sp-panel-promos">
+          <p class="sp-hint-text">Tambah promo yang sedang berjalan untuk menarik pengunjung.</p>
+          <div id="sp-promos-edit"></div>
+          <button class="sp-btn-secondary" id="sp-add-promo-btn" style="margin-top:10px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Promo
+          </button>
+        </div>
+
+        <!-- Events (event only) -->
+        <div class="sp-panel hidden" id="sp-panel-events">
+          <p class="sp-hint-text">Tambah event yang sedang/akan berlangsung di tempat ini.</p>
+          <div id="sp-events-edit"></div>
+          <button class="sp-btn-secondary" id="sp-add-event-btn" style="margin-top:10px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Event
+          </button>
         </div>
 
         <!-- 3D Model -->

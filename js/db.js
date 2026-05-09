@@ -44,6 +44,12 @@ export async function upsertStore(store) {
   if (error) console.warn('[db] upsertStore:', error.message);
 }
 
+export async function deleteStore(key) {
+  if (!supabase || !key) return;
+  const { error } = await supabase.from('stores').delete().eq('key', key);
+  if (error) console.warn('[db] deleteStore:', error.message);
+}
+
 /* ── Map Config ───────────────────────────────────────────── */
 
 export async function fetchMapConfig() {

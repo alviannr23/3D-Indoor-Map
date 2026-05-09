@@ -2,6 +2,14 @@ import * as THREE from 'three';
 
 export const DEFAULT_LOGO = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpath d='M16 7V5a2 2 0 0 0-4 0v2'/%3E%3Cpath d='M8 7V5a2 2 0 0 0-4 0v2'/%3E%3Cline x1='12' y1='12' x2='12' y2='16'/%3E%3Cline x1='10' y1='14' x2='14' y2='14'/%3E%3C/svg%3E`;
 
+export const RENTAL_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'>
+  <rect x='4' y='4' width='192' height='112' rx='14' fill='%23fef3c7' stroke='%23f59e0b' stroke-width='4' stroke-dasharray='10,6'/>
+  <text x='100' y='52' font-family='Segoe UI, sans-serif' font-size='22' font-weight='800' text-anchor='middle' fill='%23b45309'>TERSEDIA</text>
+  <text x='100' y='82' font-family='Segoe UI, sans-serif' font-size='16' font-weight='600' text-anchor='middle' fill='%23b45309'>untuk Disewa</text>
+</svg>
+`)}`;
+
 /* ── TEXTURE LOADING ─────────────────────────────────────── */
 const texCache = {};
 
@@ -119,6 +127,14 @@ export function saveStoreConfig(config, changedStore = null) {
 
 export function findStore(storeKey, config) {
   return (config || getStoreConfig()).find(s => s.key === storeKey) || null;
+}
+
+/** Detect type ('store' | 'fasilitas' | 'event') from a store key. */
+export function getEntityType(storeKey) {
+  const k = (storeKey || '').toLowerCase();
+  if (k.includes('fasil')) return 'fasilitas';
+  if (k.includes('event')) return 'event';
+  return 'store';
 }
 
 /* ── DOM FORM HELPERS ─────────────────────────────────────── */

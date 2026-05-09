@@ -14,8 +14,10 @@ export class StoreManager {
     let cfg   = Utils.getStoreConfig();
     let store = Utils.findStore(storeKey, cfg);
     if (!store) {
+      const type = Utils.getEntityType(storeKey);
       store = {
         key:          storeKey,
+        type,
         name:         storeKey.replace(/_/g, ' ').toUpperCase(),
         logo:         Utils.DEFAULT_LOGO,
         category:     '',
@@ -31,8 +33,21 @@ export class StoreManager {
         baseHeight:   0.002,
         logoHeight:   0.005,
       };
+      if (type === 'fasilitas') {
+        store.facilityType  = '';
+        store.accessibility = '';
+      } else if (type === 'event') {
+        store.events = [];
+      } else {
+        store.promos    = [];
+        store.isEmpty   = false;
+        store.tenantEmail = '';
+      }
       cfg.push(store);
       Utils.saveStoreConfig(cfg);
+    } else if (!store.type) {
+      // Backfill type for stores created before type field existed
+      store.type = Utils.getEntityType(storeKey);
     }
     return store;
   }
@@ -55,7 +70,8 @@ export class StoreManager {
 
     Utils.applyLogoScale(mesh, store.logoScale || 0.8);
 
-    mat.map = Utils.getTexture(store.logo, (tex) => {
+    const logoSrc = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
+    mat.map = Utils.getTexture(logoSrc, (tex) => {
       const w = tex.image?.width, h = tex.image?.height;
       if (!w || !h) return;
       mesh.userData.aspect = w / h;
@@ -134,13 +150,36 @@ export class StoreManager {
     const store = Utils.findStore(storeKey, cfg);
     if (!store) return;
 
-    if (fd.name        !== undefined) store.name        = fd.name        || store.name;
-    if (fd.category    !== undefined) store.category    = fd.category;
-    if (fd.description !== undefined) store.description = fd.description;
-    if (fd.phone       !== undefined) store.phone       = fd.phone;
-    if (fd.website     !== undefined) store.website     = fd.website;
-    if (fd.photos      !== undefined) store.photos      = fd.photos;
-    if (fd.hours       !== undefined) store.hours       = fd.hours;
+    if (fd.name          !== undefined) store.name          = fd.name        || store.name;
+    if (fd.category      !== undefined) store.category      = fd.category;
+    if (fd.description   !== undefined) store.description   = fd.description;
+    if (fd.phone         !== undefined) store.phone         = fd.phone;
+    if (fd.website       !== undefined) store.website       = fd.website;
+    if (fd.photos        !== undefined) store.photos        = fd.photos;
+    if (fd.hours         !== undefined) store.hours         = fd.hours;
+    if (fd.facilityType  !== undefined) store.facilityType  = fd.facilityType;
+    if (fd.accessibility !== undefined) store.accessibility = fd.accessibility;
+    if (fd.isEmpty       !== undefined) {
+      const prev = !!store.isEmpty;
+      store.isEmpty = fd.isEmpty;
+      if (prev !== !!fd.isEmpty) {
+        // Refresh live logo texture to match new state
+        const logoMesh = this.storeMeshes[storeKey]?.logo;
+        if (logoMesh) {
+          const src = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
+          logoMesh.material.map = Utils.getTexture(src, (tex) => {
+            const w = tex.image?.width, h = tex.image?.height;
+            if (!w || !h) return;
+            logoMesh.userData.aspect = w / h;
+            Utils.applyLogoScale(logoMesh, store.logoScale || 0.8);
+          });
+          logoMesh.material.needsUpdate = true;
+        }
+      }
+    }
+    if (fd.tenantEmail   !== undefined) store.tenantEmail   = fd.tenantEmail;
+    if (fd.promos        !== undefined) store.promos        = fd.promos;
+    if (fd.events        !== undefined) store.events        = fd.events;
     store.logoOffset   = { x: fd.offsetX, z: fd.offsetZ };
     store.logoScale    = fd.logoScale;
     store.logoRotation = fd.logoRotation;
@@ -212,6 +251,36 @@ export class StoreManager {
     this._addBaseToScene(storeKey, ref.userData.origin, ref, data, ref?.parent);
 
     Utils.saveStoreConfig(cfg);
+  }
+
+  /* ── DELETE ────────────────────────────────────────────── */
+  // Removes the store config + uploaded assets. Visual meshes (logo + bases) stay
+  // until the next reload — they'll regenerate as a fresh empty store from the GLB.
+  async deleteStore(storeKey) {
+    const cfg  = Utils.getStoreConfig();
+    const idx  = cfg.findIndex(s => s.key === storeKey);
+    if (idx < 0) return;
+    const store = cfg[idx];
+    cfg.splice(idx, 1);
+
+    Utils.saveStoreConfig(cfg);
+
+    // Clean up Supabase row + uploaded assets (best-effort, non-blocking)
+    try {
+      const { deleteStore, deleteAssets, getAssetPath, isConfigured } = await import('./db.js');
+      deleteStore(storeKey).catch(() => {});
+      if (isConfigured()) {
+        const paths = [];
+        if (store.logo) { const p = getAssetPath(store.logo); if (p) paths.push(p); }
+        (store.photos || []).forEach(ph => { const p = getAssetPath(ph); if (p) paths.push(p); });
+        (store.promos || []).forEach(p => { const pp = getAssetPath(p?.image); if (pp) paths.push(pp); });
+        (store.events || []).forEach(ev => {
+          (ev.photos || []).forEach(ph => { const pp = getAssetPath(ph); if (pp) paths.push(pp); });
+          const pp = getAssetPath(ev.image); if (pp) paths.push(pp);
+        });
+        if (paths.length) deleteAssets(paths).catch(() => {});
+      }
+    } catch {}
   }
 
   /* ── FORM LOAD ─────────────────────────────────────────── */

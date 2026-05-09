@@ -35,6 +35,7 @@ const DEFAULTS = {
   light: { floorColor: '#d4d4d8', defaultColor: '#e4e4e7', storeColor: '#1500ff' },
   dark:  { floorColor: '#3a3a4a', defaultColor: '#4a4a5a', storeColor: '#1500ff' },
   categoryFilters: [],
+  adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
 
 let _isAdmin = false; // true when admin is logged in
@@ -63,6 +64,7 @@ let S = (() => {
     };
   } catch { return { ...DEFAULTS, light: { ...DEFAULTS.light }, dark: { ...DEFAULTS.dark } }; }
 })();
+window.__adminWa = S.adminWa || '';
 
 /* ── SUPABASE STARTUP SYNC (background — tidak blokir map) ── */
 async function _dbSync() {
@@ -83,6 +85,7 @@ async function _dbSync() {
     } else {
       saveMapConfig(S).catch(() => {});
     }
+    window.__adminWa = S.adminWa || '';
 
     if (dbStores && dbStores.length > 0) {
       Utils.initStoreCache(dbStores);
@@ -111,6 +114,7 @@ function C() { return S[S.darkMode ? 'dark' : 'light']; }
 
 const persist = () => {
   localStorage.setItem('imap_cfg', JSON.stringify(S));
+  window.__adminWa = S.adminWa || '';
   saveMapConfig(S); // async, fire-and-forget
 };
 
@@ -410,12 +414,13 @@ function _preNormalizeMeshNames(gltfScene, stopAt) {
     const lname = child.name.toLowerCase();
     // Already has a recognised keyword — skip
     if (lname.includes('floor') || lname.includes('lantai') ||
-        lname.includes('toko')  || lname.includes('escalat') || lname.includes('eskalat')) return;
+        lname.includes('toko')  || lname.includes('escalat') || lname.includes('eskalat') ||
+        lname.includes('fasil') || lname.includes('event')) return;
 
     // Case 1: parent chain contains "floor" / "lantai"
-    const { isFloor, isStore, isEscalator } = getObjectType(child, stopAt);
-    if (isFloor)                  { child.name = 'floor_' + child.name; return; }
-    if (isStore || isEscalator)   return; // never rename store/escalator meshes
+    const { isFloor, isStore, isEscalator, isFasilitas, isEvent } = getObjectType(child, stopAt);
+    if (isFloor)                                          { child.name = 'floor_' + child.name; return; }
+    if (isStore || isEscalator || isFasilitas || isEvent) return;
 
     // Case 2: unclassified mesh — check world-space bounding box
     const box  = new THREE.Box3().setFromObject(child);
@@ -448,11 +453,13 @@ function setupMaterials(root) {
     const mat = child.material;
     if (!mat) return;
 
-    const { isFloor, isStore, isEscalator } = getObjectType(child, root.parent);
+    const { isFloor, isStore, isEscalator, isFasilitas, isEvent } = getObjectType(child, root.parent);
 
-    if (isFloor)      child.userData.type = 'floor';
-    else if (isStore) child.userData.type = 'store';
-    else              child.userData.type = 'other';
+    if (isFloor)           child.userData.type = 'floor';
+    else if (isStore)      child.userData.type = 'store';
+    else if (isFasilitas)  child.userData.type = 'fasilitas';
+    else if (isEvent)      child.userData.type = 'event';
+    else                   child.userData.type = 'other';
 
     if (isFloor) {
       floorMeshes.push(child);
@@ -462,7 +469,7 @@ function setupMaterials(root) {
 
     if (mat.map && !isEscalator) return;
 
-    if (isStore) {
+    if (isStore || isFasilitas || isEvent) {
       mat.color.set(C().storeColor);
     } else {
       mat.color.set(C().defaultColor);
@@ -481,7 +488,7 @@ function setupStores(root, floorIdx = 0) {
   const groups = new Map();
   root.traverse((child) => {
     if (!child.isMesh) return;
-    const key = getStoreKey(child);
+    const key = getStoreKey(child) || getFasilitasKey(child) || getEventKey(child);
     if (!key) return;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(child);
@@ -510,28 +517,45 @@ function setupStores(root, floorIdx = 0) {
    stopAt: stop before reaching this node (pass gltf.scene.parent = floorGroup)
    so the outer "floor_0" wrapper group doesn't taint every mesh as isFloor. */
 function getObjectType(obj, stopAt) {
-  let isFloor = false, isStore = false, isEscalator = false, cur = obj;
+  let isFloor = false, isStore = false, isEscalator = false, isFasilitas = false, isEvent = false;
+  let cur = obj;
   while (cur && cur !== stopAt) {
     const name = cur.name?.toLowerCase() || '';
-    if (name.includes('floor') || name.includes('lantai'))   isFloor      = true;
-    if (name.includes('toko'))                               isStore      = true;
+    if (name.includes('floor') || name.includes('lantai'))    isFloor     = true;
+    if (name.includes('toko'))                                isStore     = true;
     if (name.includes('escalat') || name.includes('eskalat')) isEscalator = true;
+    if (name.includes('fasil'))                               isFasilitas = true;
+    if (name.includes('event'))                               isEvent     = true;
     cur = cur.parent;
   }
-  return { isFloor, isStore, isEscalator };
+  return { isFloor, isStore, isEscalator, isFasilitas, isEvent };
 }
 
 function getStoreKey(obj) {
-  // Walk up to find the deepest "toko" ancestor.
-  // Return the name of its direct child — each direct child = one store.
   let cur = obj;
-  let directChild = null;
   while (cur) {
     const name = cur.name?.toLowerCase() || '';
-    if (name.includes('toko')) {
-      return (directChild?.name.toLowerCase()) || name;
-    }
-    directChild = cur;
+    if (name.includes('toko')) return name;
+    cur = cur.parent;
+  }
+  return null;
+}
+
+function getFasilitasKey(obj) {
+  let cur = obj;
+  while (cur) {
+    const name = cur.name?.toLowerCase() || '';
+    if (name.includes('fasil')) return name;
+    cur = cur.parent;
+  }
+  return null;
+}
+
+function getEventKey(obj) {
+  let cur = obj;
+  while (cur) {
+    const name = cur.name?.toLowerCase() || '';
+    if (name.includes('event')) return name;
     cur = cur.parent;
   }
   return null;
@@ -1161,6 +1185,7 @@ window.openPanel = (type) => {
     document.getElementById('inp-floor-color').value   = C().floorColor;
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
+    document.getElementById('inp-admin-wa').value      = S.adminWa || '';
   }
   if (type === 'categories') {
     _buildCategoryAdminUI();
@@ -1184,6 +1209,7 @@ window.closeSettings = () => {
 function _applyAdminState(isAdmin) {
   _isAdmin = isAdmin;
   document.body.classList.toggle('is-admin', isAdmin);
+  window.__isAdmin = isAdmin;
   const label = document.getElementById('admin-btn-label');
   if (label) label.textContent = isAdmin ? 'Logout' : 'Admin';
 }
@@ -1251,6 +1277,20 @@ window.toggleMapStyle = async (isDark) => {
   location.reload();
 };
 
+window.saveAdminContact = () => {
+  const raw = document.getElementById('inp-admin-wa').value.trim();
+  // Strip + sign and any non-digits (wa.me wants digits only)
+  S.adminWa = raw.replace(/[^0-9]/g, '');
+  persist();
+  const btn = document.querySelector('button[onclick="saveAdminContact()"]');
+  if (btn) {
+    const old = btn.textContent;
+    btn.textContent = '✓ Tersimpan';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
+  }
+};
+
 window.applyMapColors = () => {
   C().floorColor   = document.getElementById('inp-floor-color').value;
   C().defaultColor = document.getElementById('inp-default-color').value;
@@ -1262,7 +1302,7 @@ window.applyMapColors = () => {
   if (modelLayer.scene) {
     modelLayer.scene.traverse((child) => {
       if (!child.isMesh) return;
-      if (child.userData.type === 'store') {
+      if (['store', 'fasilitas', 'event'].includes(child.userData.type)) {
         child.material.color.set(C().storeColor);
         child.material.needsUpdate = true;
       } else if (child.userData.type === 'other') {

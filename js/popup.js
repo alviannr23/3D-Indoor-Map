@@ -36,11 +36,29 @@ export function open(storeKey) {
   _tempEdit  = null;
 
   const store = Utils.findStore(storeKey) || _sm.getOrCreateStore(storeKey);
+  const type  = store.type || Utils.getEntityType(storeKey);
+  _setPopupType(type);
   _showView();
   _renderViewMode(store, storeKey);
 
   _el('store-popup').classList.remove('hidden');
   _el('sp-popup-overlay').classList.remove('hidden');
+}
+
+function _setPopupType(type) {
+  const popup = _el('store-popup');
+  popup.classList.remove('popup-type-store', 'popup-type-fasilitas', 'popup-type-event');
+  popup.classList.add(`popup-type-${type}`);
+}
+
+/** True if current viewer can edit this entity. */
+function _canEdit(store) {
+  const isAdmin = !!window.__isAdmin;
+  if (isAdmin) return true;
+  // Owner-edit only applies to stores; fasilitas/event always require admin
+  if ((store?.type || 'store') !== 'store') return false;
+  // TODO: hook up actual user email check vs store.tenantEmail
+  return false;
 }
 
 export function isOpen() { return _activeKey !== null; }
@@ -161,7 +179,11 @@ function _showView() {
 }
 
 function _renderViewMode(store, storeKey) {
-  _renderHero(store.photos || []);
+  const type = store.type || Utils.getEntityType(storeKey);
+
+  // Hero: for event type with a live event having photos, use those; otherwise venue photos
+  const liveEv = _liveEventWithPhotos(store);
+  _renderHero((liveEv?.photos?.length ? liveEv.photos : store.photos) || []);
 
   const logoImg = _el('sp-logo-img');
   logoImg.src = store.logo || Utils.DEFAULT_LOGO;
@@ -170,14 +192,324 @@ function _renderViewMode(store, storeKey) {
   _el('sp-title').textContent = store.name || storeKey.replace(/_/g, ' ').toUpperCase();
   const catEl = _el('sp-category-text');
   catEl.textContent   = store.category || '';
-  catEl.style.display = store.category ? '' : 'none';
+  catEl.style.display = (type === 'store' && store.category) ? '' : 'none';
 
-  _renderStatus(store);
-  _renderQuickActions(store);
-  _renderInfoList(store);
+  // Edit button visibility per-type permission
+  const editBtn = _el('sp-edit-btn');
+  if (editBtn) {
+    editBtn.style.display = _canEdit(store) ? '' : 'none';
+    editBtn.onclick = () => _openEditMode(storeKey);
+  }
 
-  _el('sp-edit-btn').onclick = () => _openEditMode(storeKey);
   _renderNavButton(storeKey);
+
+  // Reset all view containers so stale content doesn't leak between popups
+  ['sp-status', 'sp-quick', 'sp-infolist', 'sp-promos', 'sp-events-list'].forEach(id => {
+    const el = _el(id);
+    if (el) { el.innerHTML = ''; el.style.display = ''; }
+  });
+  _el('sp-infolist')?.classList.remove('is-live-event');
+
+  // Rental banner: always shown for events, only when isEmpty for stores. Never for fasilitas.
+  const rentalBanner = _el('sp-rental-banner');
+  const navBtn       = _el('sp-nav-btn');
+  const showRental   = type === 'event' || (type === 'store' && !!store.isEmpty);
+  const hideNav      = type === 'store' && !!store.isEmpty; // empty store has no real destination
+  if (showRental) {
+    rentalBanner.classList.remove('hidden');
+    _setupRentalBanner(store, type);
+    // Position: top for store, bottom (after upcoming events) for event
+    const view = _el('sp-view');
+    if (view) {
+      if (type === 'event') {
+        view.appendChild(rentalBanner);
+      } else {
+        // Store: place above nav button (its original spot)
+        const nav = _el('sp-nav-btn');
+        if (nav && rentalBanner.nextSibling !== nav) view.insertBefore(rentalBanner, nav);
+      }
+    }
+  } else {
+    rentalBanner.classList.add('hidden');
+  }
+  if (navBtn) navBtn.style.display = hideNav ? 'none' : '';
+
+  if (type === 'fasilitas') {
+    _renderFasilitasView(store);
+  } else if (type === 'event') {
+    _renderEventView(store);
+  } else if (store.isEmpty) {
+    // Empty store — hide hours, status, quick actions, promos
+    const statusEl = _el('sp-status');
+    const quickEl  = _el('sp-quick');
+    if (statusEl) { statusEl.innerHTML = ''; statusEl.style.display = 'none'; }
+    if (quickEl)  { quickEl.innerHTML  = ''; quickEl.style.display  = 'none'; }
+    _el('sp-infolist').innerHTML = store.description
+      ? _infoRow('ℹ️', `<p>${_esc(store.description)}</p>`)
+      : '';
+  } else {
+    _renderStatus(store);
+    _renderQuickActions(store);
+    _renderInfoList(store);
+    _renderPromos(store);
+  }
+}
+
+function _renderPromos(store) {
+  const el = _el('sp-promos');
+  if (!el) return;
+  const promos = (store.promos || []).filter(p => p && (p.title || p.description));
+  if (!promos.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="sp-promos-title">🎁 Promo Berjalan</div>
+    ${promos.map(p => `
+      <div class="sp-promo-card">
+        ${p.image ? `<img class="sp-promo-img" src="${_esc(p.image)}" alt="" onerror="this.style.display='none'"/>` : ''}
+        <div class="sp-promo-body">
+          ${p.title       ? `<p class="sp-promo-title">${_esc(p.title)}</p>` : ''}
+          ${p.description ? `<p class="sp-promo-desc">${_esc(p.description)}</p>` : ''}
+          ${p.validUntil  ? `<p class="sp-promo-valid">Berlaku hingga ${_esc(_formatDate(p.validUntil))}</p>` : ''}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function _formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function _setupRentalBanner(store, type) {
+  const titleEl  = _el('sp-rental-title');
+  const subtitle = _el('sp-rental-subtitle');
+  const waBtn    = _el('sp-rental-wa-btn');
+  const noWaMsg  = _el('sp-rental-no-wa');
+  const wa       = window.__adminWa || '';
+
+  if (type === 'event') {
+    if (titleEl)  titleEl.textContent  = 'Sewa Tempat untuk Event';
+    if (subtitle) subtitle.textContent = 'Tempat ini bisa disewa untuk event Anda';
+  } else {
+    if (titleEl)  titleEl.textContent  = 'Tersedia untuk Disewa';
+    if (subtitle) subtitle.textContent = 'Hubungi admin untuk informasi sewa toko';
+  }
+
+  if (wa) {
+    waBtn.classList.remove('hidden');
+    waBtn.disabled = false;
+    noWaMsg.classList.add('hidden');
+    const target = type === 'event' ? 'tempat event' : 'toko';
+    const msg = encodeURIComponent(`Halo Admin, saya tertarik untuk menyewa ${target}: ${store.name || store.key}`);
+    waBtn.onclick = () => window.open(`https://wa.me/${wa}?text=${msg}`, '_blank', 'noopener');
+  } else {
+    waBtn.classList.add('hidden');
+    noWaMsg.classList.remove('hidden');
+  }
+}
+
+/* ── FASILITAS VIEW ──────────────────────────────────────── */
+const FACILITY_LABELS = {
+  entrance:         { label: 'Pintu Masuk',        icon: '🚪' },
+  parking:          { label: 'Parkiran',           icon: '🅿️' },
+  toilet:           { label: 'Toilet',             icon: '🚻' },
+  musholla:         { label: 'Musholla',           icon: '🕌' },
+  lift:             { label: 'Lift',               icon: '🛗' },
+  escalator:        { label: 'Eskalator',          icon: '🔼' },
+  stairs:           { label: 'Tangga',             icon: '🪜' },
+  emergency_stairs: { label: 'Tangga Darurat',     icon: '🆘' },
+  atm:              { label: 'ATM',                icon: '🏧' },
+  info:             { label: 'Customer Service',   icon: 'ℹ️' },
+  other:            { label: 'Fasilitas',          icon: '📍' },
+};
+
+function _renderFasilitasView(store) {
+  const meta = FACILITY_LABELS[store.facilityType] || FACILITY_LABELS.other;
+  const badge = _el('sp-facility-badge');
+  badge.textContent = `${meta.icon} ${meta.label}`;
+
+  const list = _el('sp-infolist');
+  let html = '';
+  if (store.description)   html += _infoRow('ℹ️', `<p>${_esc(store.description)}</p>`);
+  if (store.accessibility) html += _infoRow('♿', `<p>${_esc(store.accessibility)}</p>`);
+  if (!html) html = `<p class="sp-empty-hint">Fasilitas ${meta.label.toLowerCase()}.</p>`;
+  list.innerHTML = html;
+}
+
+function _renderEventView(store) {
+  const events = (store.events || []).filter(e => e && (e.name || e.description));
+
+  // Categorise into live + upcoming
+  const now = Date.now();
+  const live = [], upcoming = [];
+  events.forEach(ev => {
+    const start = ev.startDate ? _eventStartTimestamp(ev) : null;
+    const end   = ev.endDate   ? _eventEndTimestamp(ev)   : start;
+    if (start == null) { upcoming.push(ev); return; }
+    if (end != null && end < now) return;
+    if (start <= now && (end == null || end >= now)) live.push(ev);
+    else upcoming.push(ev);
+  });
+  upcoming.sort((a, b) => _eventStartTimestamp(a) - _eventStartTimestamp(b));
+
+  const liveEv = live[0]; // primary live event drives the popup chrome
+
+  // Event context bar — visual differentiator from store popup
+  _setupEventContextBar(store, liveEv, upcoming);
+
+  // When a live event exists, popup behaves like a store popup using event data:
+  // override category text, status (Buka/Tutup based on event date+time), quick actions, info list.
+  const titleEl = _el('sp-title');
+  const catEl   = _el('sp-category-text');
+  if (liveEv) {
+    if (titleEl) titleEl.textContent = liveEv.name || (store.name || store.key);
+    if (catEl) {
+      catEl.textContent   = liveEv.category || '';
+      catEl.style.display = liveEv.category ? '' : 'none';
+    }
+    _renderEventQuickActions(liveEv);
+    _renderEventInfoList(liveEv);
+  } else {
+    // No live event — show venue identity + venue description (or empty hint)
+    if (catEl) catEl.style.display = 'none';
+    const list = _el('sp-infolist');
+    list.innerHTML = store.description
+      ? _infoRow('ℹ️', `<p>${_esc(store.description)}</p>`)
+      : (upcoming.length
+          ? `<p class="sp-empty-hint">Tidak ada event yang sedang berlangsung. Lihat jadwal di bawah.</p>`
+          : `<p class="sp-empty-hint">Belum ada event di tempat ini.</p>`);
+  }
+
+  // Upcoming events at the bottom
+  const eventsEl = _el('sp-events-list');
+  if (eventsEl) {
+    eventsEl.innerHTML = upcoming.length ? `
+      <div class="sp-events-section">
+        <div class="sp-events-heading">📅 Jadwal Event Mendatang</div>
+        ${upcoming.map(ev => _eventCardHtml(ev, false)).join('')}
+      </div>
+    ` : '';
+  }
+}
+
+function _setupEventContextBar(store, liveEv, upcoming) {
+  const bar     = _el('sp-event-context');
+  const iconEl  = _el('sp-event-context-icon');
+  const lineEl  = _el('sp-event-context-line');
+  const venueEl = _el('sp-event-context-venue');
+  if (!bar) return;
+  bar.classList.remove('is-live');
+
+  // When live, the "event sedang berlangsung" header lives inside the infolist
+  // card (rendered by _renderEventInfoList). Hide the standalone bar to avoid duplication.
+  if (liveEv) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = '';
+
+  const venueName = store.name || store.key.replace(/_/g, ' ').toUpperCase();
+  if (upcoming.length) {
+    if (iconEl)  iconEl.textContent  = '📅';
+    if (lineEl)  lineEl.textContent  = 'Area Event · Ada jadwal mendatang';
+    if (venueEl) venueEl.textContent = venueName;
+  } else {
+    if (iconEl)  iconEl.textContent  = '🎪';
+    if (lineEl)  lineEl.textContent  = 'Area Event';
+    if (venueEl) venueEl.textContent = venueName;
+  }
+}
+
+function _renderEventQuickActions(ev) {
+  const el = _el('sp-quick');
+  if (!el) return;
+  const btns = [];
+  if (ev.phone) {
+    btns.push(`<a href="tel:${_esc(ev.phone)}" class="sp-qbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.35 2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.72 16z"/></svg>Telepon</a>`);
+  }
+  if (ev.website) {
+    btns.push(`<a href="${_esc(ev.website)}" target="_blank" rel="noopener" class="sp-qbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Website</a>`);
+  }
+  if (ev.organizerPhone) {
+    const phone = ev.organizerPhone.replace(/\D/g, '');
+    const msg   = encodeURIComponent(`Halo, saya tertarik dengan event ${ev.name || ''}`);
+    btns.push(`<a href="https://wa.me/${phone}?text=${msg}" target="_blank" rel="noopener" class="sp-qbtn sp-qbtn--wa"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/></svg>WhatsApp</a>`);
+  }
+  el.innerHTML = btns.join('');
+  el.style.display = btns.length ? '' : 'none';
+}
+
+function _renderEventInfoList(ev) {
+  const el = _el('sp-infolist');
+  if (!el) return;
+  el.classList.add('is-live-event');
+
+  const dateRange = _formatEventRange(ev);
+  let html = `
+    <div class="sp-infolist-event-header">
+      <span class="sp-infolist-event-icon">🔴</span>
+      <div class="sp-infolist-event-text">
+        <span class="sp-infolist-event-title">Event sedang berlangsung</span>
+        ${dateRange ? `<span class="sp-infolist-event-date">${_esc(dateRange)}</span>` : ''}
+      </div>
+    </div>
+  `;
+  if (ev.htm)         html += _infoRow('🎟️', `<p>HTM: <strong>${_esc(ev.htm)}</strong></p>`);
+  if (ev.description) html += _infoRow('ℹ️', `<p>${_esc(ev.description)}</p>`);
+  if (ev.phone)       html += _infoRow('📞', `<a href="tel:${_esc(ev.phone)}">${_esc(ev.phone)}</a>`);
+  if (ev.website)     html += _infoRow('🌐', `<a href="${_esc(ev.website)}" target="_blank" rel="noopener">${_esc(ev.website)}</a>`);
+  el.innerHTML = html;
+}
+
+function _eventCardHtml(ev, live) {
+  const dateStr = _formatEventRange(ev);
+  const photo   = (Array.isArray(ev.photos) && ev.photos[0]) || ev.image || '';
+  return `
+    <div class="sp-event-card${live ? ' sp-event-live' : ''}">
+      ${photo ? `<img class="sp-event-img" src="${_esc(photo)}" alt="" onerror="this.style.display='none'"/>` : ''}
+      <div class="sp-event-body">
+        <p class="sp-event-title">${_esc(ev.name || 'Event')}${live ? '<span class="sp-event-live-badge">LIVE</span>' : ''}</p>
+        ${dateStr        ? `<p class="sp-event-date">${dateStr}</p>` : ''}
+        ${ev.description ? `<p class="sp-event-desc">${_esc(ev.description)}</p>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function _formatEventRange(ev) {
+  if (!ev.startDate) return '';
+  const sd = _formatDate(ev.startDate);
+  const ed = ev.endDate && ev.endDate !== ev.startDate ? _formatDate(ev.endDate) : '';
+  const tRange = (ev.startTime && ev.endTime) ? ` · ${ev.startTime}–${ev.endTime}`
+               : ev.startTime                   ? ` · mulai ${ev.startTime}`
+               : '';
+  return ed ? `${sd} – ${ed}${tRange}` : `${sd}${tRange}`;
+}
+
+function _eventStartTimestamp(ev) {
+  if (!ev.startDate) return null;
+  const t = ev.startTime || '00:00';
+  return new Date(`${ev.startDate}T${t}:00`).getTime();
+}
+function _eventEndTimestamp(ev) {
+  const date = ev.endDate || ev.startDate;
+  if (!date) return null;
+  const t = ev.endTime || '23:59';
+  return new Date(`${date}T${t}:00`).getTime();
+}
+
+/** Returns the live event whose photos should drive the hero, or null. */
+function _liveEventWithPhotos(store) {
+  if (store.type !== 'event') return null;
+  const now = Date.now();
+  return (store.events || []).find(ev => {
+    if (!ev || !Array.isArray(ev.photos) || !ev.photos.length) return false;
+    const start = _eventStartTimestamp(ev);
+    const end   = _eventEndTimestamp(ev);
+    return start != null && start <= now && (end == null || end >= now);
+  }) || null;
 }
 
 function _renderNavButton(storeKey) {
@@ -349,7 +681,7 @@ function _renderInfoList(store) {
   if (store.phone)        html += _infoRow('📞', `<a href="tel:${_esc(store.phone)}">${_esc(store.phone)}</a>`);
   if (store.website)      html += _infoRow('🌐', `<a href="${_esc(store.website)}" target="_blank" rel="noopener">${_esc(store.website)}</a>`);
   if (store.hours)        html += _buildHoursAccordion(store.hours);
-  if (!html) html = `<p class="sp-empty-hint">Belum ada informasi. Klik <b>Edit</b> untuk menambahkan.</p>`;
+  if (!html) html = `<p class="sp-empty-hint">Belum ada informasi.</p>`;
   el.innerHTML = html;
 }
 
@@ -389,6 +721,20 @@ function _openEditMode(storeKey) {
   if (!store) return;
   _tempEdit = { original: structuredClone(store), photos: [...(store.photos || [])] };
 
+  const type = store.type || Utils.getEntityType(storeKey);
+  const titleEl = _el('sp-edit-title');
+  const nameLabel = _el('sp-name-label');
+  if (type === 'fasilitas') {
+    if (titleEl)   titleEl.textContent   = 'Edit Fasilitas';
+    if (nameLabel) nameLabel.textContent = 'Nama Fasilitas';
+  } else if (type === 'event') {
+    if (titleEl)   titleEl.textContent   = 'Edit Event';
+    if (nameLabel) nameLabel.textContent = 'Nama Tempat Event';
+  } else {
+    if (titleEl)   titleEl.textContent   = 'Edit Toko';
+    if (nameLabel) nameLabel.textContent = 'Nama Toko';
+  }
+
   _el('sp-view').classList.add('hidden');
   _el('sp-edit').classList.remove('hidden');
   _el('sp-save-footer').classList.remove('hidden');
@@ -397,12 +743,43 @@ function _openEditMode(storeKey) {
 
   _loadInfoPanel(store, storeKey);
   _loadPhotosPanel(store);
-  _loadHoursPanel(store);
+  if (type === 'store') {
+    _loadHoursPanel(store);
+    _loadPromosPanel(store);
+  }
+  if (type === 'event') _loadEventsPanel(store);
   _loadModelPanel(storeKey);
   switchTab('info');
 
   _el('sp-save-btn').onclick = () => _saveEditMode(storeKey);
   _el('sp-back-btn').onclick = _cancelEditMode;
+}
+
+async function _deleteEntity(storeKey) {
+  const store = Utils.findStore(storeKey);
+  const label = store?.name || storeKey;
+  if (!confirm(`Hapus data "${label}"?\n\nData (info, foto, promo/event) akan terhapus.\nObjek 3D di peta tetap, dan akan menjadi entri baru saat halaman di-reload.`)) return;
+
+  const delBtn = _el('sp-delete-entity-btn');
+  const orig   = delBtn?.innerHTML;
+  if (delBtn) { delBtn.disabled = true; delBtn.textContent = 'Menghapus...'; }
+
+  try {
+    if (typeof _sm.deleteStore === 'function') {
+      await _sm.deleteStore(storeKey);
+    }
+  } catch (e) {
+    console.warn('[popup] delete failed:', e);
+  } finally {
+    if (delBtn) {
+      delBtn.disabled = false;
+      delBtn.innerHTML = orig;
+    }
+  }
+  // Bypass rollback — the store no longer exists, _tempEdit.original would re-create it.
+  _tempEdit  = null;
+  _activeKey = null;
+  close();
 }
 
 function _cancelEditMode() {
@@ -420,14 +797,22 @@ async function _saveEditMode(storeKey) {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...'; }
 
   try {
+    const storeForType = Utils.findStore(storeKey);
+    const editType     = storeForType?.type || Utils.getEntityType(storeKey);
     const fd = {
-      name:         _el('sp-name').value.trim(),
-      category:     _el('sp-category').value.trim(),
-      description:  _el('sp-description').value.trim(),
-      phone:        _el('sp-phone').value.trim(),
-      website:      _el('sp-website').value.trim(),
-      photos:       [...(_tempEdit?.photos || [])],
-      hours:        _collectHours(),
+      name:           _el('sp-name').value.trim(),
+      category:       _el('sp-category').value.trim(),
+      description:    _el('sp-description').value.trim(),
+      phone:          _el('sp-phone').value.trim(),
+      website:        _el('sp-website').value.trim(),
+      facilityType:   _el('sp-facility-type')?.value || '',
+      accessibility:  _el('sp-accessibility')?.value.trim() || '',
+      isEmpty:        editType !== 'fasilitas' ? !!_el('sp-is-empty')?.checked : undefined,
+      tenantEmail:    editType !== 'fasilitas' ? (_el('sp-tenant-email')?.value.trim() || '') : undefined,
+      photos:         [...(_tempEdit?.photos || [])],
+      promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
+      events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
+      hours:          editType === 'store' ? _collectHours() : undefined,
       offsetX:      Utils.getFormValue('offsetX'),
       offsetZ:      Utils.getFormValue('offsetZ'),
       logoScale:    Utils.getFormValue('logoScale', 0.8),
@@ -481,6 +866,65 @@ async function _saveEditMode(storeKey) {
         }
       }
       fd.photos = uploadedPhotos;
+
+      // Promo & event images
+      const _uploadEntityImage = async (item, prefix) => {
+        if (item?.image?.startsWith('data:')) {
+          const url = await uploadAsset(
+            _b64ToBlob(item.image, 'image/jpeg'),
+            `${prefix}/${safeKey}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`,
+          );
+          if (url) item.image = url;
+        }
+      };
+      if (Array.isArray(fd.promos)) {
+        for (const p of fd.promos) await _uploadEntityImage(p, 'promos');
+        // Queue removed promo images for deletion
+        const oldImgs = (original?.promos || []).map(p => p?.image).filter(Boolean);
+        const newImgs = fd.promos.map(p => p?.image).filter(Boolean);
+        oldImgs.forEach(img => {
+          if (!newImgs.includes(img)) {
+            const path = getAssetPath(img);
+            if (path) toDelete.push(path);
+          }
+        });
+      }
+      if (Array.isArray(fd.events)) {
+        const collectAllImgs = list => {
+          const all = [];
+          (list || []).forEach(ev => {
+            if (ev?.image) all.push(ev.image);
+            (ev?.photos || []).forEach(p => p && all.push(p));
+          });
+          return all;
+        };
+        for (const ev of fd.events) {
+          await _uploadEntityImage(ev, 'events');
+          if (Array.isArray(ev.photos)) {
+            const uploaded = [];
+            for (const p of ev.photos) {
+              if (p?.startsWith('data:')) {
+                const url = await uploadAsset(
+                  _b64ToBlob(p, 'image/jpeg'),
+                  `events/${safeKey}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`,
+                );
+                uploaded.push(url || p);
+              } else {
+                uploaded.push(p);
+              }
+            }
+            ev.photos = uploaded;
+          }
+        }
+        const oldImgs = collectAllImgs(original?.events);
+        const newImgs = collectAllImgs(fd.events);
+        oldImgs.forEach(img => {
+          if (!newImgs.includes(img)) {
+            const path = getAssetPath(img);
+            if (path) toDelete.push(path);
+          }
+        });
+      }
 
       // Base texture
       if (fd.baseTexture?.startsWith('data:')) {
@@ -539,6 +983,27 @@ function _loadInfoPanel(store, storeKey) {
   _el('sp-description').value = store.description || '';
   Utils.setFormValue('sp-phone',       store.phone       || '');
   Utils.setFormValue('sp-website',     store.website     || '');
+
+  const facTypeEl = _el('sp-facility-type');
+  if (facTypeEl) facTypeEl.value = store.facilityType || '';
+  Utils.setFormValue('sp-accessibility', store.accessibility || '');
+
+  // Rental controls (store + event)
+  const isEmptyEl     = _el('sp-is-empty');
+  const tenantEmailEl = _el('sp-tenant-email');
+  const tenantWrap    = _el('sp-tenant-email-wrap');
+  if (isEmptyEl)     isEmptyEl.checked  = !!store.isEmpty;
+  if (tenantEmailEl) tenantEmailEl.value = store.tenantEmail || '';
+  if (tenantWrap)    tenantWrap.style.display = store.isEmpty ? 'none' : '';
+  if (isEmptyEl) {
+    isEmptyEl.onchange = () => {
+      if (tenantWrap) tenantWrap.style.display = isEmptyEl.checked ? 'none' : '';
+    };
+  }
+  const delBtn = _el('sp-delete-entity-btn');
+  if (delBtn) {
+    delBtn.onclick = () => _deleteEntity(storeKey);
+  }
   Utils.setFormValue('offsetX',        store.logoOffset?.x ?? 0);
   Utils.setFormValue('offsetZ',        store.logoOffset?.z ?? 0);
   Utils.setFormValue('logoScale',      store.logoScale    ?? 0.8);
@@ -669,6 +1134,219 @@ function _collectHours() {
     };
   });
   return result;
+}
+
+/* ── PROMOS PANEL ────────────────────────────────────────── */
+function _loadPromosPanel(store) {
+  if (!_tempEdit) return;
+  if (!_tempEdit.promos) _tempEdit.promos = [...(store.promos || [])];
+  _renderPromosEditor();
+  const addBtn = _el('sp-add-promo-btn');
+  if (addBtn) addBtn.onclick = () => {
+    _tempEdit.promos.push({ title: '', description: '', validUntil: '', image: '' });
+    _renderPromosEditor();
+  };
+}
+
+function _renderPromosEditor() {
+  const wrap = _el('sp-promos-edit');
+  if (!wrap) return;
+  const items = _tempEdit?.promos || [];
+  if (!items.length) { wrap.innerHTML = `<p class="sp-empty-hint">Belum ada promo.</p>`; return; }
+  wrap.innerHTML = items.map((p, i) => `
+    <div class="sp-list-editor-item" data-idx="${i}">
+      <div class="sp-list-editor-row">
+        <div class="sp-list-editor-thumb" data-promo-thumb="${i}" style="${p.image ? `background-image:url('${_esc(p.image)}')` : ''}">${p.image ? '' : '+'}</div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:6px">
+          <input type="text" data-promo-field="title"       data-idx="${i}" placeholder="Judul promo..." value="${_esc(p.title || '')}" />
+          <input type="date" data-promo-field="validUntil"  data-idx="${i}" value="${_esc(p.validUntil || '')}" />
+          <textarea data-promo-field="description" data-idx="${i}" placeholder="Deskripsi promo...">${_esc(p.description || '')}</textarea>
+        </div>
+      </div>
+      <div class="sp-list-editor-actions">
+        <button class="sp-list-editor-del" data-promo-del="${i}" type="button">Hapus</button>
+      </div>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('[data-promo-field]').forEach(el => {
+    el.oninput = () => {
+      const idx = +el.dataset.idx;
+      const fld = el.dataset.promoField;
+      if (_tempEdit.promos[idx]) _tempEdit.promos[idx][fld] = el.value;
+    };
+  });
+  wrap.querySelectorAll('[data-promo-del]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.promoDel;
+      _tempEdit.promos.splice(idx, 1);
+      _renderPromosEditor();
+    };
+  });
+  wrap.querySelectorAll('[data-promo-thumb]').forEach(thumb => {
+    thumb.onclick = () => {
+      const idx = +thumb.dataset.promoThumb;
+      _pickListImage((b64) => {
+        _tempEdit.promos[idx].image = b64;
+        _renderPromosEditor();
+      });
+    };
+  });
+}
+
+/* ── EVENTS PANEL ────────────────────────────────────────── */
+function _loadEventsPanel(store) {
+  if (!_tempEdit) return;
+  if (!_tempEdit.events) {
+    // Migrate legacy single `image` → `photos[]`
+    _tempEdit.events = (store.events || []).map(ev => ({
+      ...ev,
+      photos: Array.isArray(ev.photos) ? [...ev.photos] : (ev.image ? [ev.image] : []),
+    }));
+  }
+  _renderEventsEditor();
+  const addBtn = _el('sp-add-event-btn');
+  if (addBtn) addBtn.onclick = () => {
+    _tempEdit.events.push({
+      name: '', category: '', startDate: '', endDate: '', startTime: '', endTime: '',
+      description: '', phone: '', website: '',
+      tenantEmail: '', organizerPhone: '', htm: '', photos: [],
+    });
+    if (!_tempEdit._eventsExpanded) _tempEdit._eventsExpanded = new Set();
+    _tempEdit._eventsExpanded.add(_tempEdit.events.length - 1);
+    _renderEventsEditor();
+  };
+}
+
+function _renderEventsEditor() {
+  const wrap = _el('sp-events-edit');
+  if (!wrap) return;
+  const items = _tempEdit?.events || [];
+  if (!items.length) { wrap.innerHTML = `<p class="sp-empty-hint">Belum ada event.</p>`; return; }
+
+  if (!_tempEdit._eventsExpanded) _tempEdit._eventsExpanded = new Set();
+  const expanded = _tempEdit._eventsExpanded;
+
+  wrap.innerHTML = items.map((ev, i) => {
+    const isOpen    = expanded.has(i);
+    const dateLabel = _formatEventRange(ev) || 'Belum dijadwalkan';
+    return `
+      <div class="sp-list-editor-item sp-event-edit-item${isOpen ? ' is-expanded' : ''}" data-idx="${i}">
+        <div class="sp-event-edit-header" data-event-toggle="${i}">
+          <div class="sp-event-edit-summary">
+            <span class="sp-event-edit-name">${_esc(ev.name || '(Event tanpa nama)')}</span>
+            <span class="sp-event-edit-date">${_esc(dateLabel)}</span>
+          </div>
+          <span class="sp-event-edit-chevron">${isOpen ? '▾' : '▸'}</span>
+        </div>
+        ${isOpen ? _eventEditFieldsHtml(ev, i) : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Toggle expand/collapse
+  wrap.querySelectorAll('[data-event-toggle]').forEach(el => {
+    el.onclick = (e) => {
+      // Don't toggle when clicking inputs/buttons inside the body
+      if (e.target.closest('input, textarea, button')) return;
+      const idx = +el.dataset.eventToggle;
+      if (expanded.has(idx)) expanded.delete(idx); else expanded.add(idx);
+      _renderEventsEditor();
+    };
+  });
+
+  wrap.querySelectorAll('[data-event-field]').forEach(el => {
+    el.oninput = () => {
+      const idx = +el.dataset.idx;
+      const fld = el.dataset.eventField;
+      if (_tempEdit.events[idx]) _tempEdit.events[idx][fld] = el.value;
+    };
+  });
+  wrap.querySelectorAll('[data-event-del]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.eventDel;
+      _tempEdit.events.splice(idx, 1);
+      expanded.delete(idx);
+      _renderEventsEditor();
+    };
+  });
+  wrap.querySelectorAll('[data-event-photo-add]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.dataset.eventPhotoAdd;
+      _pickListImage((b64) => {
+        if (!_tempEdit.events[idx].photos) _tempEdit.events[idx].photos = [];
+        _tempEdit.events[idx].photos.push(b64);
+        _renderEventsEditor();
+      }, /*multiple*/true);
+    };
+  });
+  wrap.querySelectorAll('[data-event-photo-del]').forEach(btn => {
+    btn.onclick = () => {
+      const [evIdx, phIdx] = btn.dataset.eventPhotoDel.split('_').map(Number);
+      _tempEdit.events[evIdx].photos.splice(phIdx, 1);
+      _renderEventsEditor();
+    };
+  });
+}
+
+function _eventEditFieldsHtml(ev, i) {
+  return `
+    <div class="sp-event-edit-body">
+      <input type="text" data-event-field="name"     data-idx="${i}" placeholder="Nama event..." value="${_esc(ev.name || '')}" />
+      <input type="text" data-event-field="category" data-idx="${i}" placeholder="Kategori (Konser, Expo, Bazaar...)" value="${_esc(ev.category || '')}" />
+      <div style="display:flex; gap:6px">
+        <input type="date" data-event-field="startDate" data-idx="${i}" value="${_esc(ev.startDate || '')}" style="flex:1" title="Tanggal mulai" />
+        <input type="time" data-event-field="startTime" data-idx="${i}" value="${_esc(ev.startTime || '')}" style="flex:1" title="Jam mulai" />
+      </div>
+      <div style="display:flex; gap:6px">
+        <input type="date" data-event-field="endDate"   data-idx="${i}" value="${_esc(ev.endDate || '')}"   style="flex:1" title="Tanggal selesai" />
+        <input type="time" data-event-field="endTime"   data-idx="${i}" value="${_esc(ev.endTime || '')}"   style="flex:1" title="Jam selesai" />
+      </div>
+      <input type="text" data-event-field="htm"      data-idx="${i}" placeholder="HTM (mis. Rp 50.000 / Gratis)" value="${_esc(ev.htm || '')}" />
+      <textarea          data-event-field="description" data-idx="${i}" placeholder="Deskripsi event...">${_esc(ev.description || '')}</textarea>
+      <input type="tel"   data-event-field="phone"   data-idx="${i}" placeholder="Telepon kontak event" value="${_esc(ev.phone || '')}" />
+      <input type="url"   data-event-field="website" data-idx="${i}" placeholder="Website event (https://...)" value="${_esc(ev.website || '')}" />
+      <input type="email" data-event-field="tenantEmail"    data-idx="${i}" placeholder="Email penyelenggara..." value="${_esc(ev.tenantEmail || '')}" />
+      <input type="tel"   data-event-field="organizerPhone" data-idx="${i}" placeholder="No. WA penyelenggara (628...)" value="${_esc(ev.organizerPhone || '')}" />
+
+      <div class="sp-event-photos-row">
+        <span class="sp-event-photos-label">Foto event:</span>
+        <div class="sp-event-photos-grid" data-event-photos="${i}">
+          ${(ev.photos || []).map((src, pi) => `
+            <div class="sp-event-photo-thumb" style="background-image:url('${_esc(src)}')">
+              <button type="button" class="sp-event-photo-del" data-event-photo-del="${i}_${pi}" title="Hapus foto">×</button>
+            </div>
+          `).join('')}
+          <button type="button" class="sp-event-photo-add" data-event-photo-add="${i}" title="Tambah foto">+</button>
+        </div>
+      </div>
+
+      <div class="sp-list-editor-actions">
+        <button class="sp-list-editor-del" data-event-del="${i}" type="button">Hapus Event</button>
+      </div>
+    </div>
+  `;
+}
+
+function _pickListImage(onPicked, multiple = false) {
+  const inp = document.createElement('input');
+  inp.type     = 'file';
+  inp.accept   = 'image/*';
+  inp.multiple = !!multiple;
+  inp.onchange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (multiple) {
+      for (const f of files) {
+        const b64 = await _compressImage(f, 700);
+        onPicked(b64);
+      }
+    } else {
+      const b64 = await _compressImage(files[0], 600);
+      onPicked(b64);
+    }
+  };
+  inp.click();
 }
 
 /* ── MODEL PANEL ─────────────────────────────────────────── */
