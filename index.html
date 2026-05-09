@@ -386,7 +386,7 @@
             <input type="url" id="sp-website" placeholder="https://..." />
           </div>
 
-          <!-- Rental section — store only (toggle + tenant credentials) -->
+          <!-- Rental section — store only -->
           <div class="sp-divider sp-store-only admin-edit-only"></div>
           <div class="sp-sect-label sp-store-only admin-edit-only">Status Rental</div>
           <div class="sp-store-only admin-edit-only">
@@ -394,16 +394,13 @@
               <input type="checkbox" id="sp-is-empty" />
               <span>Tandai sebagai tersedia untuk disewa (kosong)</span>
             </label>
-          </div>
-
-          <!-- Tenant credentials — store + event (hidden for fasilitas) -->
-          <div class="sp-divider sp-fasil-only-hide admin-edit-only"></div>
-          <div class="sp-field-full sp-fasil-only-hide admin-edit-only" id="sp-tenant-email-wrap">
-            <label>Email Pengelola</label>
-            <input type="email" id="sp-tenant-email" placeholder="email@pengelola.com" />
-            <label style="margin-top:8px">Password Pengelola</label>
-            <input type="text" id="sp-tenant-password" placeholder="password untuk login pengelola..." autocomplete="off" />
-            <p class="field-hint">Admin isi email + password di sini. Pengelola pakai keduanya untuk login di "Masuk sebagai Penyewa".</p>
+            <div class="sp-field-full" id="sp-tenant-email-wrap">
+              <label>Email Penyewa</label>
+              <input type="email" id="sp-tenant-email" placeholder="email@penyewa.com" />
+              <label style="margin-top:8px">Password Penyewa</label>
+              <input type="text" id="sp-tenant-password" placeholder="password untuk login penyewa..." autocomplete="off" />
+              <p class="field-hint">Admin isi email + password di sini. Penyewa pakai keduanya untuk login di "Masuk sebagai Penyewa".</p>
+            </div>
           </div>
 
           <div class="sp-divider admin-edit-only"></div>
@@ -462,7 +459,7 @@
         <div class="sp-panel hidden" id="sp-panel-events">
           <p class="sp-hint-text">Tambah event yang sedang/akan berlangsung di tempat ini.</p>
           <div id="sp-events-edit"></div>
-          <button class="sp-btn-secondary" id="sp-add-event-btn" style="margin-top:10px">
+          <button class="sp-btn-secondary admin-edit-only" id="sp-add-event-btn" style="margin-top:10px">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah Event
           </button>

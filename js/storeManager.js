@@ -37,9 +37,7 @@ export class StoreManager {
         store.facilityType  = '';
         store.accessibility = '';
       } else if (type === 'event') {
-        store.events        = [];
-        store.tenantEmail    = '';
-        store.tenantPassword = '';
+        store.events = [];
       } else {
         store.promos      = [];
         store.isEmpty     = false;

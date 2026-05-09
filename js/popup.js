@@ -54,14 +54,21 @@ function _setPopupType(type) {
 /** True if current viewer can edit this entity. */
 function _canEdit(store) {
   if (!!window.__isAdmin) return true;
-  const tenantEmail = window.__tenantEmail;
-  if (tenantEmail && store?.tenantEmail && tenantEmail === store.tenantEmail) return true;
+  const email = window.__tenantEmail;
+  if (!email) return false;
+  // Store tenant
+  if (store?.tenantEmail && email === store.tenantEmail) return true;
+  // Event tenant: can open this venue to edit their event
+  if (window.__tenantStoreKey != null && window.__tenantEventIdx != null && store?.key === window.__tenantStoreKey) return true;
   return false;
 }
 
 /** True if the current edit session is by a tenant (not admin). */
 function _isTenantEdit(store) {
-  return !window.__isAdmin && !!window.__tenantEmail && store?.tenantEmail === window.__tenantEmail;
+  if (window.__isAdmin || !window.__tenantEmail) return false;
+  if (store?.tenantEmail && window.__tenantEmail === store.tenantEmail) return true;
+  if (window.__tenantStoreKey != null && window.__tenantEventIdx != null && store?.key === window.__tenantStoreKey) return true;
+  return false;
 }
 
 export function isOpen() { return _activeKey !== null; }
@@ -769,9 +776,12 @@ function _openEditMode(storeKey) {
     _loadHoursPanel(store);
     _loadPromosPanel(store);
   }
-  if (type === 'event') _loadEventsPanel(store);
+  if (type === 'event') {
+    _loadEventsPanel(store);
+    if (_isTenantEdit(store)) { switchTab('events'); }
+  }
   _loadModelPanel(storeKey);
-  switchTab('info');
+  if (type !== 'event' || !_isTenantEdit(store)) switchTab('info');
 
   _el('sp-save-btn').onclick = () => _saveEditMode(storeKey);
   _el('sp-back-btn').onclick = _cancelEditMode;
@@ -831,8 +841,8 @@ async function _saveEditMode(storeKey) {
       facilityType:   _el('sp-facility-type')?.value || '',
       accessibility:  _el('sp-accessibility')?.value.trim() || '',
       isEmpty:        editType === 'store' ? !!_el('sp-is-empty')?.checked : undefined,
-      tenantEmail:    (editType === 'store' || editType === 'event') ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
-      tenantPassword: (editType === 'store' || editType === 'event') ? (_el('sp-tenant-password')?.value         || '') : undefined,
+      tenantEmail:    editType === 'store' ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
+      tenantPassword: editType === 'store' ? (_el('sp-tenant-password')?.value         || '') : undefined,
       photos:         [...(_tempEdit?.photos || [])],
       promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
       events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
@@ -1253,13 +1263,21 @@ function _loadEventsPanel(store) {
 function _renderEventsEditor() {
   const wrap = _el('sp-events-edit');
   if (!wrap) return;
-  const items = _tempEdit?.events || [];
-  if (!items.length) { wrap.innerHTML = `<p class="sp-empty-hint">Belum ada event.</p>`; return; }
+  const allItems = _tempEdit?.events || [];
+
+  // Event tenant only sees their own event
+  const tenantIdx = window.__tenantEventIdx;
+  const isTenantMode = !window.__isAdmin && tenantIdx != null;
+  const slots = isTenantMode
+    ? allItems.map((ev, i) => ({ ev, i })).filter(({ i }) => i === tenantIdx)
+    : allItems.map((ev, i) => ({ ev, i }));
+
+  if (!slots.length) { wrap.innerHTML = `<p class="sp-empty-hint">Belum ada event.</p>`; return; }
 
   if (!_tempEdit._eventsExpanded) _tempEdit._eventsExpanded = new Set();
   const expanded = _tempEdit._eventsExpanded;
 
-  wrap.innerHTML = items.map((ev, i) => {
+  wrap.innerHTML = slots.map(({ ev, i }) => {
     const isOpen    = expanded.has(i);
     const dateLabel = _formatEventRange(ev) || 'Belum dijadwalkan';
     return `
@@ -1338,8 +1356,12 @@ function _eventEditFieldsHtml(ev, i) {
       <textarea          data-event-field="description" data-idx="${i}" placeholder="Deskripsi event...">${_esc(ev.description || '')}</textarea>
       <input type="tel"   data-event-field="phone"   data-idx="${i}" placeholder="Telepon kontak event" value="${_esc(ev.phone || '')}" />
       <input type="url"   data-event-field="website" data-idx="${i}" placeholder="Website event (https://...)" value="${_esc(ev.website || '')}" />
-      <input type="email" data-event-field="tenantEmail"    data-idx="${i}" placeholder="Email penyelenggara..." value="${_esc(ev.tenantEmail || '')}" />
       <input type="tel"   data-event-field="organizerPhone" data-idx="${i}" placeholder="No. WA penyelenggara (628...)" value="${_esc(ev.organizerPhone || '')}" />
+      <div class="admin-edit-only" style="display:contents">
+        <input type="email" data-event-field="tenantEmail"    data-idx="${i}" placeholder="Email pengelola event..." value="${_esc(ev.tenantEmail || '')}" />
+        <input type="text"  data-event-field="tenantPassword" data-idx="${i}" placeholder="Password pengelola event..." value="${_esc(ev.tenantPassword || '')}" autocomplete="off" />
+        <p class="field-hint" style="margin:0 0 4px">Admin isi email + password agar pengelola bisa login dan edit event ini.</p>
+      </div>
 
       <div class="sp-event-photos-row">
         <span class="sp-event-photos-label">Foto event:</span>
@@ -1353,7 +1375,7 @@ function _eventEditFieldsHtml(ev, i) {
         </div>
       </div>
 
-      <div class="sp-list-editor-actions">
+      <div class="sp-list-editor-actions admin-edit-only">
         <button class="sp-list-editor-del" data-event-del="${i}" type="button">Hapus Event</button>
       </div>
     </div>

@@ -39,7 +39,9 @@ const DEFAULTS = {
 };
 
 let _isAdmin = false; // true when admin is logged in
-window.__tenantEmail = null;
+window.__tenantEmail    = null;
+window.__tenantStoreKey = null;
+window.__tenantEventIdx = null;
 
 let S = (() => {
   try {
@@ -1227,20 +1229,29 @@ function _applyAuthState(user) {
 function _applyAdminState(user) { _applyAuthState(user); }
 
 /* ── Tenant local session ─────────────────────────────────── */
-function _applyTenantDirectState(email, match) {
-  window.__tenantEmail = email;
+function _applyTenantDirectState(email, store, eventIdx = null) {
+  window.__tenantEmail    = email;
+  window.__tenantStoreKey = store?.key ?? null;
+  window.__tenantEventIdx = eventIdx;
   document.body.classList.add('is-tenant');
   const badge = document.getElementById('tenant-badge');
   if (badge) {
     badge.classList.remove('hidden');
     const storeEl = badge.querySelector('.tb-store');
-    if (storeEl) storeEl.textContent = match?.name || email;
+    if (storeEl) {
+      const label = eventIdx != null
+        ? (store?.events?.[eventIdx]?.name || email)
+        : (store?.name || email);
+      storeEl.textContent = label;
+    }
   }
 }
 
 function _clearTenantState() {
   localStorage.removeItem('imap_tenant');
-  window.__tenantEmail = null;
+  window.__tenantEmail    = null;
+  window.__tenantStoreKey = null;
+  window.__tenantEventIdx = null;
   document.body.classList.remove('is-tenant');
   const badge = document.getElementById('tenant-badge');
   if (badge) badge.classList.add('hidden');
@@ -1251,12 +1262,21 @@ function _checkTenantSession() {
   try {
     const raw = localStorage.getItem('imap_tenant');
     if (!raw) return;
-    const { email } = JSON.parse(raw) || {};
+    const { email, storeKey, eventIdx } = JSON.parse(raw) || {};
     if (!email) return;
-    const cfg   = Utils.getStoreConfig();
-    const match = cfg.find(s => s.tenantEmail === email);
-    if (match) _applyTenantDirectState(email, match);
-    else localStorage.removeItem('imap_tenant'); // email sudah tidak terdaftar
+    const cfg = Utils.getStoreConfig();
+    if (storeKey != null && eventIdx != null) {
+      // Event tenant session
+      const store = cfg.find(s => s.key === storeKey);
+      const ev    = store?.events?.[eventIdx];
+      if (ev?.tenantEmail === email) _applyTenantDirectState(email, store, eventIdx);
+      else localStorage.removeItem('imap_tenant');
+    } else {
+      // Store tenant session
+      const match = cfg.find(s => s.tenantEmail === email);
+      if (match) _applyTenantDirectState(email, match);
+      else localStorage.removeItem('imap_tenant');
+    }
   } catch {}
 }
 
@@ -1283,16 +1303,31 @@ window.doTenantLogin = () => {
   const err      = document.getElementById('tenant-login-error');
   if (!email || !password) return;
 
-  const cfg   = Utils.getStoreConfig();
-  const match = cfg.find(s => s.tenantEmail === email && s.tenantPassword === password);
-  if (!match) {
-    if (err) err.textContent = 'Email atau password salah.';
+  const cfg = Utils.getStoreConfig();
+
+  // 1. Cek credentials level toko
+  const storeMatch = cfg.find(s => s.tenantEmail === email && s.tenantPassword === password);
+  if (storeMatch) {
+    localStorage.setItem('imap_tenant', JSON.stringify({ email }));
+    _applyTenantDirectState(email, storeMatch);
+    window.closeTenantLogin();
     return;
   }
 
-  localStorage.setItem('imap_tenant', JSON.stringify({ email }));
-  _applyTenantDirectState(email, match);
-  window.closeTenantLogin();
+  // 2. Cek credentials level event
+  for (const store of cfg) {
+    const evIdx = (store.events || []).findIndex(
+      ev => ev.tenantEmail === email && ev.tenantPassword === password
+    );
+    if (evIdx >= 0) {
+      localStorage.setItem('imap_tenant', JSON.stringify({ email, storeKey: store.key, eventIdx: evIdx }));
+      _applyTenantDirectState(email, store, evIdx);
+      window.closeTenantLogin();
+      return;
+    }
+  }
+
+  if (err) err.textContent = 'Email atau password salah.';
 };
 
 window.doTenantLogout = () => {
@@ -1778,12 +1813,12 @@ function searchSelectStore(key) {
   if (mesh) map.flyTo({ center: toLL(mesh.position), zoom: 19, pitch: 58, bearing: -30, duration: 1000, easing: ease });
 }
 
-/** Focus camera to the currently logged-in tenant's store. */
+/** Focus camera to the currently logged-in tenant's store/event venue. */
 window.focusTenantStore = () => {
-  const email = window.__tenantEmail;
-  if (!email) return;
-  const store = Utils.getStoreConfig().find(s => s.tenantEmail === email);
-  if (store) searchSelectStore(store.key);
+  if (!window.__tenantEmail) return;
+  const key = window.__tenantStoreKey
+    || Utils.getStoreConfig().find(s => s.tenantEmail === window.__tenantEmail)?.key;
+  if (key) searchSelectStore(key);
 };
 
 /* ── SEARCH ──────────────────────────────────────────────── */
