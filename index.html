@@ -82,6 +82,14 @@
     </div>
   </div>
 
+  <!-- Tenant focus button (bottom-right, above fullscreen, visible only when logged in as tenant) -->
+  <button id="tenant-focus-btn" class="tenant-focus-btn" onclick="window.focusTenantStore?.()" title="Lihat toko saya">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="10" r="3"/>
+      <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 14-8 14S4 15.25 4 10a8 8 0 0 1 8-8z"/>
+    </svg>
+  </button>
+
   <!-- Badge lantai -->
   <div id="floor-badge">📍 Mall — Lantai Dasar</div>
 
@@ -378,7 +386,7 @@
             <input type="url" id="sp-website" placeholder="https://..." />
           </div>
 
-          <!-- Rental section — store only (event venues always rentable, no toggle needed) -->
+          <!-- Rental section — store only (toggle + tenant credentials) -->
           <div class="sp-divider sp-store-only admin-edit-only"></div>
           <div class="sp-sect-label sp-store-only admin-edit-only">Status Rental</div>
           <div class="sp-store-only admin-edit-only">
@@ -386,13 +394,16 @@
               <input type="checkbox" id="sp-is-empty" />
               <span>Tandai sebagai tersedia untuk disewa (kosong)</span>
             </label>
-            <div class="sp-field-full" id="sp-tenant-email-wrap">
-              <label>Email Penyewa</label>
-              <input type="email" id="sp-tenant-email" placeholder="email@penyewa.com" />
-              <label style="margin-top:8px">Password Penyewa</label>
-              <input type="text" id="sp-tenant-password" placeholder="password untuk login penyewa..." autocomplete="off" />
-              <p class="field-hint">Admin isi email + password di sini. Penyewa pakai keduanya untuk login di "Masuk sebagai Penyewa".</p>
-            </div>
+          </div>
+
+          <!-- Tenant credentials — store + event (hidden for fasilitas) -->
+          <div class="sp-divider sp-fasil-only-hide admin-edit-only"></div>
+          <div class="sp-field-full sp-fasil-only-hide admin-edit-only" id="sp-tenant-email-wrap">
+            <label>Email Pengelola</label>
+            <input type="email" id="sp-tenant-email" placeholder="email@pengelola.com" />
+            <label style="margin-top:8px">Password Pengelola</label>
+            <input type="text" id="sp-tenant-password" placeholder="password untuk login pengelola..." autocomplete="off" />
+            <p class="field-hint">Admin isi email + password di sini. Pengelola pakai keduanya untuk login di "Masuk sebagai Penyewa".</p>
           </div>
 
           <div class="sp-divider admin-edit-only"></div>

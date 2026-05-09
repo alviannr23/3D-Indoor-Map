@@ -831,8 +831,8 @@ async function _saveEditMode(storeKey) {
       facilityType:   _el('sp-facility-type')?.value || '',
       accessibility:  _el('sp-accessibility')?.value.trim() || '',
       isEmpty:        editType === 'store' ? !!_el('sp-is-empty')?.checked : undefined,
-      tenantEmail:    editType === 'store' ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
-      tenantPassword: editType === 'store' ? (_el('sp-tenant-password')?.value         || '') : undefined,
+      tenantEmail:    (editType === 'store' || editType === 'event') ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
+      tenantPassword: (editType === 'store' || editType === 'event') ? (_el('sp-tenant-password')?.value         || '') : undefined,
       photos:         [...(_tempEdit?.photos || [])],
       promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
       events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
@@ -1032,12 +1032,6 @@ function _loadInfoPanel(store, storeKey) {
   if (tenantEmailEl) tenantEmailEl.value = store.tenantEmail || '';
   const tenantPassEl = _el('sp-tenant-password');
   if (tenantPassEl)  tenantPassEl.value  = store.tenantPassword || '';
-  if (tenantWrap)    tenantWrap.style.display = store.isEmpty ? 'none' : '';
-  if (isEmptyEl) {
-    isEmptyEl.onchange = () => {
-      if (tenantWrap) tenantWrap.style.display = isEmptyEl.checked ? 'none' : '';
-    };
-  }
   const delBtn = _el('sp-delete-entity-btn');
   if (delBtn) {
     delBtn.onclick = () => _deleteEntity(storeKey);

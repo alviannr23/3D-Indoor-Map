@@ -1712,6 +1712,25 @@ body.is-tenant .tenant-login-btn { display: none; }
 }
 .tb-logout:hover { background: rgba(20,184,166,0.18); }
 
+/* ── Tenant focus button (bottom-right, above fullscreen) ── */
+.tenant-focus-btn {
+  position: fixed;
+  bottom: 148px; /* sit above maplibre fullscreen (~100px) + nav (~40px) */
+  right: 10px;
+  z-index: 1000;
+  width: 29px; height: 29px;
+  display: none; /* hidden by default; shown only for tenants */
+  align-items: center; justify-content: center;
+  background: #fff;
+  border: none; border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+  cursor: pointer;
+  color: #333;
+  transition: background 0.15s, color 0.15s;
+}
+body.is-tenant .tenant-focus-btn { display: flex; }
+.tenant-focus-btn:hover { background: #f0fdf4; color: #14b8a6; }
+
 /* ── Tenant login modal ──────────────────────────────────── */
 #tenant-login-modal {
   position: fixed; inset: 0; z-index: 9999;

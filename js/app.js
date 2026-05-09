@@ -1778,6 +1778,14 @@ function searchSelectStore(key) {
   if (mesh) map.flyTo({ center: toLL(mesh.position), zoom: 19, pitch: 58, bearing: -30, duration: 1000, easing: ease });
 }
 
+/** Focus camera to the currently logged-in tenant's store. */
+window.focusTenantStore = () => {
+  const email = window.__tenantEmail;
+  if (!email) return;
+  const store = Utils.getStoreConfig().find(s => s.tenantEmail === email);
+  if (store) searchSelectStore(store.key);
+};
+
 /* ── SEARCH ──────────────────────────────────────────────── */
 const srchInput   = document.getElementById('srch-input');
 const srchResults = document.getElementById('srch-results');
