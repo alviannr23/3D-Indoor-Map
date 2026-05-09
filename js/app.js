@@ -99,12 +99,8 @@ async function _dbSync() {
     }
 
     const currentUser = await getUser().catch(() => null);
-    _applyAdminState(!!currentUser);
-    _applyTenantState(currentUser);
-    onAuthChange(user => {
-      _applyAdminState(!!user);
-      _applyTenantState(user);
-    });
+    _applyAuthState(currentUser);
+    onAuthChange(user => _applyAuthState(user));
   } catch (e) {
     console.warn('[DB] Startup sync gagal, pakai localStorage:', e);
     _applyAdminState(true);
@@ -1211,32 +1207,48 @@ window.closeSettings = () => {
 /* ══════════════════════════════════════════════════════════
    AUTH / ADMIN
    ══════════════════════════════════════════════════════════ */
-function _applyAdminState(isAdmin) {
-  _isAdmin = isAdmin;
-  document.body.classList.toggle('is-admin', isAdmin);
-  window.__isAdmin = isAdmin;
-  const label = document.getElementById('admin-btn-label');
-  if (label) label.textContent = isAdmin ? 'Logout' : 'Admin';
+
+/**
+ * Resolve a Supabase user object into { isAdmin, isTenant, match }.
+ * A user whose email is listed as tenantEmail in any store is a TENANT,
+ * never an admin — even if they log in via password.
+ * Passing true (dev/offline fallback) forces admin mode.
+ */
+function _resolveAuthRole(user) {
+  if (user === true) return { isAdmin: true, isTenant: false, match: null };
+  if (!user) return { isAdmin: false, isTenant: false, match: null };
+  const cfg   = Utils.getStoreConfig();
+  const match = cfg.find(s => s.tenantEmail && s.tenantEmail === user.email);
+  if (match) return { isAdmin: false, isTenant: true, match };
+  return { isAdmin: true, isTenant: false, match: null };
 }
 
-function _applyTenantState(user) {
-  const email = user?.email || null;
-  window.__tenantEmail = email;
+function _applyAuthState(user) {
+  const { isAdmin, isTenant, match } = _resolveAuthRole(user);
+
+  // Admin state
+  _isAdmin = isAdmin;
+  window.__isAdmin = isAdmin;
+  document.body.classList.toggle('is-admin', isAdmin);
+  const label = document.getElementById('admin-btn-label');
+  if (label) label.textContent = isAdmin ? 'Logout' : 'Admin';
+
+  // Tenant state
+  window.__tenantEmail = isTenant ? (user?.email || null) : null;
+  document.body.classList.toggle('is-tenant', isTenant);
   const badge = document.getElementById('tenant-badge');
-  if (email && !window.__isAdmin) {
-    document.body.classList.add('is-tenant');
-    const cfg   = Utils.getStoreConfig();
-    const match = cfg.find(s => s.tenantEmail === email);
-    if (badge) {
-      badge.classList.remove('hidden');
+  if (badge) {
+    badge.classList.toggle('hidden', !isTenant);
+    if (isTenant) {
       const storeEl = badge.querySelector('.tb-store');
-      if (storeEl) storeEl.textContent = match?.name || email;
+      if (storeEl) storeEl.textContent = match?.name || user.email;
     }
-  } else {
-    document.body.classList.remove('is-tenant');
-    if (badge) badge.classList.add('hidden');
   }
 }
+
+// Keep old name as alias so no other call-sites break
+function _applyAdminState(user) { _applyAuthState(user); }
+function _applyTenantState()    { /* merged into _applyAuthState */ }
 
 window.openTenantLogin = () => {
   const modal = document.getElementById('tenant-login-modal');
@@ -1261,6 +1273,15 @@ window.doTenantLogin = async () => {
   if (!email) return;
   const btn = document.getElementById('tenant-submit-btn');
   const err = document.getElementById('tenant-login-error');
+
+  // Validate email is registered as a tenant before sending OTP
+  const cfg   = Utils.getStoreConfig();
+  const match = cfg.find(s => s.tenantEmail === email);
+  if (!match) {
+    if (err) err.textContent = 'Email tidak terdaftar sebagai penyewa. Hubungi admin.';
+    return;
+  }
+
   if (btn) { btn.disabled = true; btn.textContent = 'Mengirim...'; }
   const { error } = await signInWithOtp(email);
   if (btn) { btn.disabled = false; btn.textContent = 'Kirim Link Masuk'; }
