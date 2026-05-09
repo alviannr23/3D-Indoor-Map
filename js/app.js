@@ -413,8 +413,9 @@ function _preNormalizeMeshNames(gltfScene, stopAt) {
         lname.includes('toko')  || lname.includes('escalat') || lname.includes('eskalat')) return;
 
     // Case 1: parent chain contains "floor" / "lantai"
-    const { isFloor } = getObjectType(child, stopAt);
-    if (isFloor) { child.name = 'floor_' + child.name; return; }
+    const { isFloor, isStore, isEscalator } = getObjectType(child, stopAt);
+    if (isFloor)                  { child.name = 'floor_' + child.name; return; }
+    if (isStore || isEscalator)   return; // never rename store/escalator meshes
 
     // Case 2: unclassified mesh — check world-space bounding box
     const box  = new THREE.Box3().setFromObject(child);
@@ -521,10 +522,16 @@ function getObjectType(obj, stopAt) {
 }
 
 function getStoreKey(obj) {
+  // Walk up to find the deepest "toko" ancestor.
+  // Return the name of its direct child — each direct child = one store.
   let cur = obj;
+  let directChild = null;
   while (cur) {
     const name = cur.name?.toLowerCase() || '';
-    if (name.includes('toko')) return name;
+    if (name.includes('toko')) {
+      return (directChild?.name.toLowerCase()) || name;
+    }
+    directChild = cur;
     cur = cur.parent;
   }
   return null;
