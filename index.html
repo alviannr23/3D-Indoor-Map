@@ -64,6 +64,22 @@
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span id="admin-btn-label">Admin</span>
     </button>
+
+    <!-- Tenant login button (always visible) -->
+    <button id="tenant-login-btn" class="tenant-login-btn" onclick="window.openTenantLogin?.()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Masuk sebagai Penyewa
+    </button>
+
+    <!-- Tenant badge (shown when logged in as tenant) -->
+    <div id="tenant-badge" class="tenant-badge hidden">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div class="tb-info">
+        <span class="tb-label">Masuk sebagai Penyewa</span>
+        <span class="tb-store"></span>
+      </div>
+      <button class="tb-logout" onclick="window.doTenantLogout?.()">Keluar</button>
+    </div>
   </div>
 
   <!-- Badge lantai -->
@@ -312,7 +328,7 @@
         <button class="sp-tab sp-store-only" data-tab="hours">Jam</button>
         <button class="sp-tab sp-store-only" data-tab="promos">Promo</button>
         <button class="sp-tab sp-event-only" data-tab="events">Event</button>
-        <button class="sp-tab" data-tab="model">3D</button>
+        <button class="sp-tab admin-edit-only" data-tab="model">3D</button>
       </div>
 
       <!-- Tab panels -->
@@ -363,9 +379,9 @@
           </div>
 
           <!-- Rental section — store only (event venues always rentable, no toggle needed) -->
-          <div class="sp-divider sp-store-only"></div>
-          <div class="sp-sect-label sp-store-only">Status Rental</div>
-          <div class="sp-store-only">
+          <div class="sp-divider sp-store-only admin-edit-only"></div>
+          <div class="sp-sect-label sp-store-only admin-edit-only">Status Rental</div>
+          <div class="sp-store-only admin-edit-only">
             <label class="sp-rental-toggle">
               <input type="checkbox" id="sp-is-empty" />
               <span>Tandai sebagai tersedia untuk disewa (kosong)</span>
@@ -373,29 +389,29 @@
             <div class="sp-field-full" id="sp-tenant-email-wrap">
               <label>Email Penyewa</label>
               <input type="email" id="sp-tenant-email" placeholder="email penyewa..." />
-              <p class="field-hint">Email akan digunakan untuk akses login penyewa (akan datang).</p>
+              <p class="field-hint">Email yang diisi di sini digunakan penyewa untuk login dan edit toko ini.</p>
             </div>
           </div>
 
-          <div class="sp-divider"></div>
-          <div class="sp-sect-label">Logo 3D</div>
+          <div class="sp-divider admin-edit-only"></div>
+          <div class="sp-sect-label admin-edit-only">Logo 3D</div>
           <input type="file" id="sp-logo-input" accept="image/*" hidden />
-          <button class="sp-btn-secondary" id="sp-change-logo-btn" style="margin-bottom:10px">
+          <button class="sp-btn-secondary admin-edit-only" id="sp-change-logo-btn" style="margin-bottom:10px">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             Ganti Logo
           </button>
-          <div class="sp-field-row">
+          <div class="sp-field-row admin-edit-only">
             <div class="sp-field"><label>Skala</label><input type="number" id="logoScale" step="0.05" /></div>
             <div class="sp-field"><label>Rotasi °</label><input type="number" id="logoRotation" step="1" /></div>
           </div>
-          <div class="sp-field-row">
+          <div class="sp-field-row admin-edit-only">
             <div class="sp-field"><label>Offset X</label><input type="number" id="offsetX" step="0.1" /></div>
             <div class="sp-field"><label>Offset Z</label><input type="number" id="offsetZ" step="0.1" /></div>
           </div>
 
           <!-- Delete button — at the very bottom of info panel -->
-          <div class="sp-divider sp-fasil-only-hide"></div>
-          <div class="sp-fasil-only-hide" style="display:flex; justify-content:flex-end">
+          <div class="sp-divider sp-fasil-only-hide admin-edit-only"></div>
+          <div class="sp-fasil-only-hide admin-edit-only" style="display:flex; justify-content:flex-end">
             <button type="button" class="sp-btn-danger" id="sp-delete-entity-btn">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
               Hapus
@@ -546,6 +562,30 @@
   <div id="link-pick-hint" class="hidden">
     Klik titik di lantai ini untuk menautkan
     <button onclick="navEdCancelLink()">&#x2715; Batal</button>
+  </div>
+
+  <!-- Tenant Login Modal -->
+  <div id="tenant-login-modal" class="hidden">
+    <div class="tenant-modal-backdrop" onclick="window.closeTenantLogin?.()"></div>
+    <div class="tenant-modal-box">
+      <div id="tenant-email-step">
+        <h3 class="tenant-modal-title">Masuk sebagai Penyewa</h3>
+        <p class="tenant-modal-hint">Masukkan email yang telah didaftarkan admin untuk toko Anda. Kami akan mengirim link masuk ke email tersebut.</p>
+        <input type="email" id="tenant-login-email" class="admin-modal-input" placeholder="email@anda.com"
+               onkeydown="if(event.key==='Enter') window.doTenantLogin?.()"/>
+        <p id="tenant-login-error" class="admin-login-error"></p>
+        <div class="admin-modal-actions">
+          <button class="admin-modal-cancel" onclick="window.closeTenantLogin?.()">Batal</button>
+          <button class="admin-modal-submit" id="tenant-submit-btn" onclick="window.doTenantLogin?.()">Kirim Link Masuk</button>
+        </div>
+      </div>
+      <div id="tenant-check-step" class="hidden">
+        <div class="tenant-check-icon">📬</div>
+        <h3 class="tenant-modal-title">Cek Email Anda</h3>
+        <p class="tenant-modal-hint">Link masuk telah dikirim ke email Anda. Silakan cek inbox atau folder spam, lalu klik link tersebut untuk masuk.</p>
+        <button class="admin-modal-submit" onclick="window.closeTenantLogin?.()">Tutup</button>
+      </div>
+    </div>
   </div>
 
   <!-- Admin Login Modal -->

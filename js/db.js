@@ -107,6 +107,16 @@ export async function signIn(email, password) {
   return { user: data?.user ?? null, error: error?.message ?? null };
 }
 
+export async function signInWithOtp(email) {
+  if (!supabase) return { error: 'Supabase tidak dikonfigurasi' };
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: redirectTo },
+  });
+  return { error: error?.message ?? null };
+}
+
 export async function signOut() {
   if (!supabase) return;
   await supabase.auth.signOut();

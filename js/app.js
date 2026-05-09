@@ -13,7 +13,7 @@ import { PathRenderer }     from './PathRenderer.js';
 import {
   fetchStores, fetchMapConfig, saveMapConfig,
   fetchNavGraph, saveNavGraph, isConfigured,
-  signIn, signOut, getUser, onAuthChange,
+  signIn, signInWithOtp, signOut, getUser, onAuthChange,
 } from './db.js';
 
 /* ── KONSTANTA ────────────────────────────────────────────── */
@@ -39,6 +39,7 @@ const DEFAULTS = {
 };
 
 let _isAdmin = false; // true when admin is logged in
+window.__tenantEmail = null;
 
 let S = (() => {
   try {
@@ -99,7 +100,11 @@ async function _dbSync() {
 
     const currentUser = await getUser().catch(() => null);
     _applyAdminState(!!currentUser);
-    onAuthChange(user => _applyAdminState(!!user));
+    _applyTenantState(currentUser);
+    onAuthChange(user => {
+      _applyAdminState(!!user);
+      _applyTenantState(user);
+    });
   } catch (e) {
     console.warn('[DB] Startup sync gagal, pakai localStorage:', e);
     _applyAdminState(true);
@@ -1213,6 +1218,64 @@ function _applyAdminState(isAdmin) {
   const label = document.getElementById('admin-btn-label');
   if (label) label.textContent = isAdmin ? 'Logout' : 'Admin';
 }
+
+function _applyTenantState(user) {
+  const email = user?.email || null;
+  window.__tenantEmail = email;
+  const badge = document.getElementById('tenant-badge');
+  if (email && !window.__isAdmin) {
+    document.body.classList.add('is-tenant');
+    const cfg   = Utils.getStoreConfig();
+    const match = cfg.find(s => s.tenantEmail === email);
+    if (badge) {
+      badge.classList.remove('hidden');
+      const storeEl = badge.querySelector('.tb-store');
+      if (storeEl) storeEl.textContent = match?.name || email;
+    }
+  } else {
+    document.body.classList.remove('is-tenant');
+    if (badge) badge.classList.add('hidden');
+  }
+}
+
+window.openTenantLogin = () => {
+  const modal = document.getElementById('tenant-login-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  document.getElementById('tenant-email-step')?.classList.remove('hidden');
+  document.getElementById('tenant-check-step')?.classList.add('hidden');
+  const emailEl = document.getElementById('tenant-login-email');
+  if (emailEl) emailEl.value = '';
+  const errEl = document.getElementById('tenant-login-error');
+  if (errEl) errEl.textContent = '';
+  setTimeout(() => emailEl?.focus(), 80);
+};
+
+window.closeTenantLogin = () => {
+  document.getElementById('tenant-login-modal')?.classList.add('hidden');
+};
+
+window.doTenantLogin = async () => {
+  const emailEl = document.getElementById('tenant-login-email');
+  const email   = emailEl?.value.trim();
+  if (!email) return;
+  const btn = document.getElementById('tenant-submit-btn');
+  const err = document.getElementById('tenant-login-error');
+  if (btn) { btn.disabled = true; btn.textContent = 'Mengirim...'; }
+  const { error } = await signInWithOtp(email);
+  if (btn) { btn.disabled = false; btn.textContent = 'Kirim Link Masuk'; }
+  if (error) {
+    if (err) err.textContent = error;
+    return;
+  }
+  document.getElementById('tenant-email-step')?.classList.add('hidden');
+  document.getElementById('tenant-check-step')?.classList.remove('hidden');
+};
+
+window.doTenantLogout = async () => {
+  await signOut();
+  // _applyTenantState dipanggil otomatis oleh onAuthChange
+};
 
 window.openAdminLogin = () => {
   document.getElementById('admin-login-modal')?.classList.remove('hidden');

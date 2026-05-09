@@ -53,12 +53,15 @@ function _setPopupType(type) {
 
 /** True if current viewer can edit this entity. */
 function _canEdit(store) {
-  const isAdmin = !!window.__isAdmin;
-  if (isAdmin) return true;
-  // Owner-edit only applies to stores; fasilitas/event always require admin
-  if ((store?.type || 'store') !== 'store') return false;
-  // TODO: hook up actual user email check vs store.tenantEmail
+  if (!!window.__isAdmin) return true;
+  const tenantEmail = window.__tenantEmail;
+  if (tenantEmail && store?.tenantEmail && tenantEmail === store.tenantEmail) return true;
   return false;
+}
+
+/** True if the current edit session is by a tenant (not admin). */
+function _isTenantEdit(store) {
+  return !window.__isAdmin && !!window.__tenantEmail && store?.tenantEmail === window.__tenantEmail;
 }
 
 export function isOpen() { return _activeKey !== null; }
@@ -197,7 +200,7 @@ function _renderViewMode(store, storeKey) {
   // Edit button visibility per-type permission
   const editBtn = _el('sp-edit-btn');
   if (editBtn) {
-    editBtn.style.display = _canEdit(store) ? '' : 'none';
+    editBtn.style.display = _canEdit(store) ? 'flex' : 'none';
     editBtn.onclick = () => _openEditMode(storeKey);
   }
 
@@ -735,6 +738,11 @@ function _openEditMode(storeKey) {
     if (nameLabel) nameLabel.textContent = 'Nama Toko';
   }
 
+  const isTenant = _isTenantEdit(store);
+  _el('store-popup').classList.toggle('popup-tenant-mode', isTenant);
+  const modelTab = document.querySelector('#sp-tabs [data-tab="model"]');
+  if (modelTab) modelTab.style.display = isTenant ? 'none' : '';
+
   _el('sp-view').classList.add('hidden');
   _el('sp-edit').classList.remove('hidden');
   _el('sp-save-footer').classList.remove('hidden');
@@ -786,6 +794,7 @@ function _cancelEditMode() {
   if (_activeKey && _tempEdit?.original) _sm.rollbackStore(_activeKey, _tempEdit.original);
   _tempEdit = null;
   _disableDrag();
+  _el('store-popup').classList.remove('popup-tenant-mode');
   _el('sp-popup-overlay').classList.remove('hidden');
   const store = Utils.findStore(_activeKey);
   if (store) _renderViewMode(store, _activeKey);
@@ -942,6 +951,7 @@ async function _saveEditMode(storeKey) {
       _renderViewMode(saved, storeKey);
     }
     _disableDrag();
+    _el('store-popup').classList.remove('popup-tenant-mode');
     _el('sp-popup-overlay').classList.remove('hidden');
     _showView();
   } finally {

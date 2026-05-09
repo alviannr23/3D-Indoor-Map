@@ -1630,6 +1630,9 @@ input[type=range].range-slider::-moz-range-thumb {
 .admin-only { display: none; }
 body.is-admin .admin-only { display: revert; }
 
+/* ── Tenant edit: hide admin-only edit fields ────────────── */
+.popup-tenant-mode .admin-edit-only { display: none !important; }
+
 /* ── Admin login button (bottom of panel) ────────────────── */
 .admin-login-btn { display: none; }
 body.show-admin-btn .admin-login-btn,
@@ -1678,6 +1681,54 @@ body.is-admin .admin-login-btn { display: flex; }
 }
 .admin-modal-submit:hover:not(:disabled) { background: #4338ca; }
 .admin-modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Tenant login button ─────────────────────────────────── */
+.tenant-login-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px; margin-top: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; color: #cbd5e1; cursor: pointer; font-size: 12px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+body.is-admin .tenant-login-btn,
+body.is-tenant .tenant-login-btn { display: none; }
+.tenant-login-btn:hover { background: rgba(20,184,166,0.15); border-color: rgba(20,184,166,0.3); color: #5eead4; }
+
+/* ── Tenant badge (shown when logged in as tenant) ────────── */
+.tenant-badge {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px; margin-top: 6px;
+  background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.25);
+  border-radius: 10px; color: #5eead4; font-size: 12px;
+}
+.tenant-badge.hidden { display: none; }
+.tb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tb-label { font-size: 10px; opacity: 0.7; }
+.tb-store { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-logout {
+  flex-shrink: 0; padding: 4px 8px; border-radius: 6px; font-size: 11px;
+  background: transparent; border: 1px solid rgba(20,184,166,0.35);
+  color: #5eead4; cursor: pointer;
+}
+.tb-logout:hover { background: rgba(20,184,166,0.18); }
+
+/* ── Tenant login modal ──────────────────────────────────── */
+#tenant-login-modal {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+#tenant-login-modal.hidden { display: none; }
+.tenant-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+.tenant-modal-box {
+  position: relative; z-index: 1;
+  background: #1e2130; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px; padding: 24px; width: 300px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.tenant-modal-title { font-size: 15px; font-weight: 600; color: #e2e8f0; margin: 0; }
+.tenant-modal-hint { font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.6; }
+.tenant-check-icon { font-size: 36px; text-align: center; }
 
 .floor-glb-row { display: flex; gap: 6px; flex: 1; min-width: 0; }
 .floor-glb-row .floor-text-inp { flex: 1; min-width: 0; }
