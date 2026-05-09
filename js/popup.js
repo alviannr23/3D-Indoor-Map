@@ -718,6 +718,20 @@ function _esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function _showToast(msg, isError = false) {
+  let el = document.getElementById('sp-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sp-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.className   = 'sp-toast' + (isError ? ' sp-toast--error' : '');
+  el.classList.add('sp-toast--show');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('sp-toast--show'), 3000);
+}
+
 /* ── EDIT MODE ───────────────────────────────────────────── */
 function _openEditMode(storeKey) {
   const store = Utils.findStore(storeKey);
@@ -816,9 +830,9 @@ async function _saveEditMode(storeKey) {
       website:        _el('sp-website').value.trim(),
       facilityType:   _el('sp-facility-type')?.value || '',
       accessibility:  _el('sp-accessibility')?.value.trim() || '',
-      isEmpty:        editType !== 'fasilitas' ? !!_el('sp-is-empty')?.checked : undefined,
-      tenantEmail:    editType !== 'fasilitas' ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
-      tenantPassword: editType !== 'fasilitas' ? (_el('sp-tenant-password')?.value         || '') : undefined,
+      isEmpty:        editType === 'store' ? !!_el('sp-is-empty')?.checked : undefined,
+      tenantEmail:    editType === 'store' ? (_el('sp-tenant-email')?.value.trim()    || '') : undefined,
+      tenantPassword: editType === 'store' ? (_el('sp-tenant-password')?.value         || '') : undefined,
       photos:         [...(_tempEdit?.photos || [])],
       promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
       events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
@@ -951,6 +965,7 @@ async function _saveEditMode(storeKey) {
       _tempEdit = { original: structuredClone(saved), photos: [...(saved.photos || [])] };
       _renderViewMode(saved, storeKey);
     }
+    _showToast('Perubahan berhasil disimpan');
     _disableDrag();
     _el('store-popup').classList.remove('popup-tenant-mode');
     _el('sp-popup-overlay').classList.remove('hidden');

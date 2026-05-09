@@ -1730,6 +1730,24 @@ body.is-tenant .tenant-login-btn { display: none; }
 .tenant-modal-hint { font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.6; }
 .tenant-check-icon { font-size: 36px; text-align: center; }
 
+/* ── Save toast notification ─────────────────────────────── */
+#sp-toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #1e2d3d; border: 1px solid rgba(99,102,241,0.35);
+  color: #a5b4fc; padding: 10px 20px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; z-index: 10000;
+  opacity: 0; pointer-events: none; white-space: nowrap;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+#sp-toast.sp-toast--show {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+#sp-toast.sp-toast--error {
+  border-color: rgba(239,68,68,0.35); color: #fca5a5;
+  background: #2d1e1e;
+}
+
 .floor-glb-row { display: flex; gap: 6px; flex: 1; min-width: 0; }
 .floor-glb-row .floor-text-inp { flex: 1; min-width: 0; }
 .floor-upload-btn {

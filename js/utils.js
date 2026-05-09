@@ -117,12 +117,12 @@ export function getStoreConfig() {
 export function saveStoreConfig(config, changedStore = null) {
   _storeCache = config;
   localStorage.setItem('storeConfig', JSON.stringify(config));
-  // Push ke Supabase (fire-and-forget) — single-store upsert when possible
-  if (changedStore) {
-    import('./db.js').then(({ upsertStore }) => upsertStore(changedStore)).catch(() => {});
-  } else {
-    import('./db.js').then(({ upsertStores }) => upsertStores(config)).catch(() => {});
-  }
+  // Push ke Supabase — single-store upsert when possible
+  const p = changedStore
+    ? import('./db.js').then(({ upsertStore }) => upsertStore(changedStore))
+    : import('./db.js').then(({ upsertStores }) => upsertStores(config));
+  p.catch(err => console.error('[DB] Gagal sync ke Supabase:', err));
+  return p; // caller dapat await jika perlu
 }
 
 export function findStore(storeKey, config) {
