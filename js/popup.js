@@ -965,7 +965,17 @@ async function _saveEditMode(storeKey) {
       _tempEdit = { original: structuredClone(saved), photos: [...(saved.photos || [])] };
       _renderViewMode(saved, storeKey);
     }
-    _showToast('Perubahan berhasil disimpan');
+
+    // Await Supabase sync dan tampilkan hasilnya
+    try {
+      const { upsertStore, isConfigured } = await import('./db.js');
+      if (isConfigured() && saved) await upsertStore(saved);
+      _showToast('Perubahan berhasil disimpan');
+    } catch (err) {
+      console.error('[Supabase] Gagal sync:', err);
+      _showToast('Tersimpan lokal · Gagal sync ke server — pastikan sudah login sebagai Admin', true);
+    }
+
     _disableDrag();
     _el('store-popup').classList.remove('popup-tenant-mode');
     _el('sp-popup-overlay').classList.remove('hidden');
