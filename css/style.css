@@ -2022,12 +2022,18 @@ body.is-tenant .tenant-focus-btn { display: flex; }
    RESPONSIVE — MOBILE (≤600px)
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
-  /* Search container: full-width, column layout */
+  /* Search container: full-width, column layout — leave room for fixed hamburger */
   #search-container {
-    top: 12px; left: 12px; right: 12px;
+    top: 12px; left: 12px; right: 56px;
     max-width: none; width: auto;
   }
   .search-top-row { flex-direction: column; gap: 6px; }
+
+  /* Hamburger: fixed top-right on mobile */
+  #sidebar-toggle-btn {
+    position: fixed; top: 12px; right: 12px;
+    align-self: auto;
+  }
   #search-box { width: 100%; }
   #category-bar { width: 100%; }
 
