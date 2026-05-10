@@ -1527,7 +1527,7 @@ input[type=range].range-slider::-moz-range-thumb {
 
 /* ── Sidebar toggle button (below search/categories) ── */
 #sidebar-toggle-btn {
-  align-self: flex-start;
+  align-self: flex-end;
   display: flex; align-items: center; justify-content: center;
   width: 36px; height: 36px;
   background: rgba(15,23,42,0.88);
