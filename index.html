@@ -28,31 +28,38 @@
 
   <!-- Search + Category bar (Google Maps style) -->
   <div id="search-container">
-    <div id="search-box">
-      <div class="srch-wrap">
-        <svg class="srch-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="srch-input" placeholder="Cari toko, fasilitas..." autocomplete="off" spellcheck="false" />
-        <button class="srch-clear hidden" id="srch-clear" tabindex="-1">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+    <div class="search-top-row">
+      <div id="search-box">
+        <div class="srch-wrap">
+          <svg class="srch-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="srch-input" placeholder="Cari toko, fasilitas..." autocomplete="off" spellcheck="false" />
+          <button class="srch-clear hidden" id="srch-clear" tabindex="-1">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="srch-results hidden" id="srch-results"></div>
       </div>
-      <div class="srch-results hidden" id="srch-results"></div>
+      <div id="category-bar"></div>
     </div>
-    <div id="category-bar"></div>
+    <button id="sidebar-toggle-btn" onclick="window.toggleSidebar?.()" title="Menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
   </div>
 
   <!-- Sidebar kanan -->
   <div id="panel">
     <div class="panel-header">
-      <button class="panel-toggle" onclick="window.toggleSidebar?.()" title="Menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
       <div class="logo">
         <div class="dot"></div>
         <span>Indoor Map</span>
       </div>
+      <button class="panel-close-btn" onclick="window.toggleSidebar?.()" title="Tutup">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
 
     <div class="panel-body">
@@ -601,7 +608,7 @@
   </div>
 
   <!-- Admin Login Modal -->
-  <div id="admin-login-modal" class="hidden">
+  <div id="admin-login-modal" class="show">
     <div class="admin-modal-backdrop" onclick="window.closeAdminLogin?.()"></div>
     <div class="admin-modal-box">
       <h3 class="admin-modal-title">Login Admin</h3>

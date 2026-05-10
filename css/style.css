@@ -92,68 +92,59 @@ body {
 
 #loading-text { font-size: 13px; font-weight: 600; color: #94a3b8; letter-spacing: 0.4px; }
 
-/* ── Sidebar (panel kanan) ───────────────────────────────── */
+/* ── Sidebar ─────────────────────────────────────────────── */
 #panel {
-  position: fixed; top: 20px; right: 20px; z-index: 200;
-  background: rgba(15,23,42,0.92);
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 18px; width: 210px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-  color: #f1f5f9;
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 260px; z-index: 9050;
+  background: rgba(13,20,38,0.98);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255,255,255,0.08);
   display: flex; flex-direction: column;
-  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1),
-              opacity 0.28s ease;
-  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: -6px 0 40px rgba(0,0,0,0.45);
+  color: #f1f5f9; overflow: hidden;
 }
+#panel.open { transform: translateX(0); }
 
-/* Header: always visible */
+/* Header */
 .panel-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 14px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 16px 14px;
+  padding-top: max(20px, env(safe-area-inset-top, 20px));
   border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
 }
-
-.panel-toggle {
-  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 9px;
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
-  color: #94a3b8; cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.panel-toggle:hover { background: rgba(99,102,241,0.18); color: #a5b4fc; }
-
-.logo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.logo { display: flex; align-items: center; gap: 8px; }
 .logo .dot {
   width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
   background: #6366f1; box-shadow: 0 0 8px #6366f1;
 }
 .logo span {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.8px;
-  text-transform: uppercase; white-space: nowrap; overflow: hidden;
-  transition: opacity 0.2s, max-width 0.28s;
-  max-width: 140px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; white-space: nowrap;
 }
+.panel-close-btn {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.panel-close-btn:hover { background: rgba(255,255,255,0.12); color: #f1f5f9; }
 
-/* Body: content below header */
+/* Body */
 .panel-body {
-  display: flex; flex-direction: column; gap: 10px;
-  padding: 12px 14px 14px;
-  overflow-y: auto;
+  flex: 1; display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 16px 24px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
+.panel-body::-webkit-scrollbar { width: 3px; }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-/* Desktop — collapsed state: body hidden, header compact */
-@media (min-width: 601px) {
-  #panel.collapsed .panel-body { display: none; }
-  #panel.collapsed { border-radius: 14px; }
-  #panel.collapsed .logo span { max-width: 0; opacity: 0; }
-  #panel.collapsed .panel-header { border-bottom-color: transparent; padding-bottom: 14px; }
-}
-
-.panel-btns { display: flex; flex-direction: column; gap: 5px; }
+.panel-btns { display: flex; flex-direction: column; gap: 6px; }
 .panel-btn {
   display: flex; align-items: center; gap: 8px;
-  padding: 9px 12px; width: 100%;
+  padding: 10px 12px; width: 100%;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
@@ -165,16 +156,17 @@ body {
 
 .panel-theme-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 2px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 10px 2px 0; border-top: 1px solid rgba(255,255,255,0.06);
 }
 .pt-lbl { font-size: 11px; font-weight: 600; color: #475569; transition: color 0.15s; }
 .pt-lbl.active { color: #a5b4fc; }
 
-/* Panel overlay (mobile only) */
+/* Sidebar backdrop overlay — click outside to close */
 #panel-overlay {
-  display: none;
+  position: fixed; inset: 0; z-index: 9049;
+  pointer-events: none; transition: background 0.32s ease;
 }
+#panel-overlay.active { pointer-events: auto; }
 
 /* ── Model loading bar ───────────────────────────────────── */
 #model-loading-bar {
@@ -247,10 +239,10 @@ body {
 
 /* Floating settings panel — tidak menutupi map */
 #settings-modal {
-  position: absolute;
+  position: fixed;
   top: 20px;
-  right: 220px;         /* di samping panel utama (lebar 190px + 10px gap) */
-  z-index: 10;
+  right: 270px;
+  z-index: 9060;
   background: rgba(15,23,42,0.94);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.09);
@@ -1523,16 +1515,29 @@ input[type=range].range-slider::-moz-range-thumb {
 /* ── Search container (search + category chips, Google Maps style) */
 #search-container {
   position: fixed; top: 20px; left: 20px; z-index: 200;
-  display: flex; flex-direction: row; align-items: flex-start;
-  gap: 8px;
-  max-width: calc(100vw - 260px);
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: calc(100vw - 60px);
+}
+.search-top-row {
+  display: flex; flex-direction: row; gap: 8px; align-items: center;
+}
+#search-box {
+  flex-shrink: 0; width: 250px; position: relative;
 }
 
-#search-box {
-  flex-shrink: 0;
-  width: 260px;
-  position: relative;
+/* ── Sidebar toggle button (below search/categories) ── */
+#sidebar-toggle-btn {
+  align-self: flex-start;
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  background: rgba(15,23,42,0.88);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; color: #94a3b8; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 0.15s, color 0.15s;
 }
+#sidebar-toggle-btn:hover { background: rgba(99,102,241,0.18); color: #a5b4fc; }
 
 .srch-wrap {
   display: flex; align-items: center; gap: 8px;
@@ -1939,7 +1944,7 @@ body.is-tenant .tenant-focus-btn { display: flex; }
 
 /* ── Step panel ──────────────────────────────────────────── */
 #nav-step-panel {
-  position: absolute; top: 80px; left: 20px; z-index: 10;
+  position: absolute; top: 116px; left: 20px; z-index: 10;
   width: 248px;
   background: rgba(13,20,38,0.95);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -2013,39 +2018,19 @@ body.is-tenant .tenant-focus-btn { display: flex; }
   #search-container {
     top: 12px; left: 12px; right: 12px;
     max-width: none; width: auto;
-    flex-direction: column; gap: 6px;
   }
+  .search-top-row { flex-direction: column; gap: 6px; }
   #search-box { width: 100%; }
   #category-bar { width: 100%; }
 
-  /* Panel: shows only header by default (hamburger pill) */
-  #panel {
-    top: 12px; right: 12px;
-    width: auto; min-width: 48px;
-    border-radius: 14px;
-  }
-  #panel .panel-body { display: none; }
-  #panel.expanded {
-    position: fixed; inset: 0;
-    top: 0; right: 0; bottom: 0; left: 0;
-    width: 100%; border-radius: 0;
-    z-index: 9100; overflow-y: auto;
-  }
-  #panel.expanded .panel-body { display: flex; }
-  #panel.expanded .panel-header {
-    padding: 20px 16px 12px;
+  /* Panel: full-screen slide-in on mobile */
+  #panel { width: 100%; }
+  #panel.open .panel-header {
     padding-top: calc(20px + env(safe-area-inset-top, 0px));
   }
-  .panel-toggle { width: 36px; height: 36px; }
 
-  /* Panel overlay backdrop */
-  #panel-overlay {
-    display: block; position: fixed; inset: 0; z-index: 9099;
-    background: rgba(0,0,0,0.55);
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.25s ease;
-  }
-  #panel-overlay.active { opacity: 1; pointer-events: auto; }
+  /* Panel overlay: dark backdrop on mobile */
+  #panel-overlay.active { background: rgba(0,0,0,0.6); }
 
   /* Settings modal: full width di bawah panel */
   #settings-modal {
@@ -2071,7 +2056,7 @@ body.is-tenant .tenant-focus-btn { display: flex; }
   #nav-step-panel {
     left: 12px; right: 12px;
     width: auto;
-    top: calc(12px + 44px + 36px + 12px); /* top + search + cats + gap */
+    top: 154px; /* 12 top + 42 search + 36 cats + 36 toggle + 28 gaps */
     max-height: 200px;
   }
 

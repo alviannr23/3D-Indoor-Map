@@ -1826,22 +1826,11 @@ window.toggleSidebar = () => {
   const panel   = document.getElementById('panel');
   const overlay = document.getElementById('panel-overlay');
   if (!panel) return;
-  const isMobile = window.innerWidth <= 600;
-  if (isMobile) {
-    const expanded = panel.classList.toggle('expanded');
-    overlay?.classList.toggle('active', expanded);
-  } else {
-    const collapsed = panel.classList.toggle('collapsed');
-    try { localStorage.setItem('sb_collapsed', collapsed ? '1' : '0'); } catch {}
-  }
+  const isOpen = panel.classList.toggle('open');
+  overlay?.classList.toggle('active', isOpen);
 };
 
-// Restore sidebar state on load
-(function initSidebar() {
-  if (window.innerWidth > 600 && localStorage.getItem('sb_collapsed') === '1') {
-    document.getElementById('panel')?.classList.add('collapsed');
-  }
-})();
+(function initSidebar() {})();
 
 /* ── SEARCH ──────────────────────────────────────────────── */
 const srchInput   = document.getElementById('srch-input');
