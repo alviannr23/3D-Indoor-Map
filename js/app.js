@@ -1821,6 +1821,28 @@ window.focusTenantStore = () => {
   if (key) searchSelectStore(key);
 };
 
+/* ── SIDEBAR TOGGLE ──────────────────────────────────────── */
+window.toggleSidebar = () => {
+  const panel   = document.getElementById('panel');
+  const overlay = document.getElementById('panel-overlay');
+  if (!panel) return;
+  const isMobile = window.innerWidth <= 600;
+  if (isMobile) {
+    const expanded = panel.classList.toggle('expanded');
+    overlay?.classList.toggle('active', expanded);
+  } else {
+    const collapsed = panel.classList.toggle('collapsed');
+    try { localStorage.setItem('sb_collapsed', collapsed ? '1' : '0'); } catch {}
+  }
+};
+
+// Restore sidebar state on load
+(function initSidebar() {
+  if (window.innerWidth > 600 && localStorage.getItem('sb_collapsed') === '1') {
+    document.getElementById('panel')?.classList.add('collapsed');
+  }
+})();
+
 /* ── SEARCH ──────────────────────────────────────────────── */
 const srchInput   = document.getElementById('srch-input');
 const srchResults = document.getElementById('srch-results');
