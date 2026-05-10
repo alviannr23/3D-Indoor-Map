@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════════════════════
+   NAVIGATION — Step panel, start modal, nav editor overlays
+   Jangan dikirim ke Claude Design (bukan bagian visual utama).
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Node properties panel (nav editor sidebar) ─────────────── */
+.np-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.np-label { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+.np-select {
+  flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px; color: #e2e8f0; font-size: 11px; padding: 4px 6px; cursor: pointer;
+}
+.np-select option { background: #1e293b; }
+.np-connector-info { font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+.np-link-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ── Link-pick hint banner ───────────────────────────────────── */
+#link-pick-hint {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 200;
+  background: rgba(99,102,241,0.92); backdrop-filter: blur(10px);
+  border-radius: 50px; padding: 10px 20px;
+  color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.45); white-space: nowrap;
+}
+#link-pick-hint button {
+  background: none; border: none; color: rgba(255,255,255,0.75);
+  cursor: pointer; font-size: 14px; line-height: 1; padding: 0;
+}
+#link-pick-hint button:hover { color: #fff; }
+
+/* ── Box selection rubber band (nav editor) ──────────────────── */
+#nav-sel-box {
+  display: none; position: fixed; pointer-events: none; z-index: 9999;
+  border: 1.5px dashed #22d3ee; background: rgba(34,211,238,0.07); border-radius: 2px;
+}
+
+/* ── Nav step floor transition item ─────────────────────────── */
+.nav-step-item--floor {
+  background: rgba(99,102,241,0.10); border-radius: 8px; padding: 4px 0;
+}
+.nav-step-icon--floor {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(99,102,241,0.20); font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* ── Nav start modal ─────────────────────────────────────────── */
+#nav-start-modal {
+  position: absolute; inset: 0; z-index: 25;
+  display: flex; align-items: center; justify-content: center;
+}
+#nav-start-modal.hidden { display: none; }
+.nav-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.nav-modal-box {
+  position: relative; z-index: 1; width: 340px; max-height: 70vh;
+  background: rgba(13,20,38,0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 18px;
+  box-shadow: 0 20px 56px rgba(0,0,0,0.7); overflow: hidden; display: flex; flex-direction: column;
+}
+.nav-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 13px; font-weight: 700; color: #f1f5f9; flex-shrink: 0;
+}
+.nav-start-search-wrap {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+}
+.nav-start-search-icon { color: #64748b; flex-shrink: 0; }
+#nav-start-search { flex: 1; background: none; border: none; outline: none; font-size: 13px; color: #f1f5f9; }
+#nav-start-search::placeholder { color: #475569; }
+.nav-start-list {
+  overflow-y: auto; flex: 1; padding: 8px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.nav-start-list::-webkit-scrollbar { width: 3px; }
+.nav-start-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+.nav-start-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px;
+  background: none; border: none; border-radius: 10px;
+  cursor: pointer; transition: background 0.15s; text-align: left; color: #f1f5f9;
+}
+.nav-start-item:hover { background: rgba(99,102,241,0.12); }
+.nav-start-thumb {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.nav-start-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.nav-start-name  { font-size: 13px; font-weight: 600; }
+.nav-start-empty { font-size: 12px; color: #475569; text-align: center; padding: 20px; }
+
+/* ── Nav step panel ──────────────────────────────────────────── */
+#nav-step-panel {
+  position: absolute; top: 116px; left: 20px; z-index: 10;
+  width: 248px; background: rgba(13,20,38,0.95);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5); overflow: hidden;
+  animation: panelIn 0.2s ease;
+}
+#nav-step-panel.hidden { display: none; }
+
+.nav-step-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 12px; font-weight: 700; color: #f1f5f9;
+}
+.nav-step-close {
+  width: 22px; height: 22px; background: rgba(255,255,255,0.07);
+  border: none; border-radius: 6px; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-step-close:hover { background: rgba(255,255,255,0.14); color: #f1f5f9; }
+
+#nav-step-panel.minimized .nav-step-list,
+#nav-step-panel.minimized .nav-sp-route-row { display: none; }
+#nav-step-panel.minimized .nav-step-header  { border-bottom: none; }
+#nav-min-icon { transition: transform 0.2s ease; }
+#nav-step-panel.minimized #nav-min-icon { transform: rotate(180deg); }
+
+.nav-step-list { padding: 10px 12px; max-height: 260px; overflow-y: auto; scrollbar-width: none; }
+.nav-step-list::-webkit-scrollbar { display: none; }
+.nav-step-item {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: #94a3b8; padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04); line-height: 1.5;
+}
+.nav-step-item:last-child { border-bottom: none; }
+.nav-step-item b  { color: #f1f5f9; }
+.nav-step-text    { flex: 1; }
+.nav-step-dist    { font-size: 11px; color: #475569; margin-left: 5px; }
+.nav-step-icon    { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.nav-step-icon--start    { background: rgba(34,197,94,0.15); }
+.nav-step-icon--end      { background: rgba(99,102,241,0.15); }
+.nav-step-icon--straight { background: rgba(56,189,248,0.12); }
+.nav-step-icon--turn     { background: rgba(251,191,36,0.13); }
+.nav-step-loading { font-size: 12px; color: #475569; padding: 12px 0; text-align: center; }
+
+.nav-sp-route-row { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.nav-sp-route-btn {
+  flex: 1; padding: 5px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  background: none; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s;
+}
+.nav-sp-route-btn:hover  { background: rgba(255,255,255,0.06); color: #94a3b8; }
+.nav-sp-route-btn.active { background: rgba(99,102,241,0.18); color: #a5b4fc; border-color: rgba(99,102,241,0.4); }

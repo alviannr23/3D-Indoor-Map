@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT — Sidebar, search bar, category chips, floor badge
+   ★ KIRIM FILE INI ke Claude Design untuk redesign layout
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+#panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 260px; z-index: 9050;
+  background: rgba(13,20,38,0.98);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: -6px 0 40px rgba(0,0,0,0.45);
+  color: #f1f5f9; overflow: hidden;
+}
+#panel.open { transform: translateX(0); }
+
+/* Header */
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 16px 14px;
+  padding-top: max(20px, env(safe-area-inset-top, 20px));
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.logo { display: flex; align-items: center; gap: 8px; }
+.logo .dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: #6366f1; box-shadow: 0 0 8px #6366f1;
+}
+.logo span {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.panel-close-btn {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.panel-close-btn:hover { background: rgba(255,255,255,0.12); color: #f1f5f9; }
+
+/* Body */
+.panel-body {
+  flex: 1; display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 16px 24px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.panel-body::-webkit-scrollbar { width: 3px; }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* Buttons */
+.panel-btns { display: flex; flex-direction: column; gap: 6px; }
+.panel-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  color: #94a3b8; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; text-align: left;
+}
+.panel-btn:hover  { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+.panel-btn.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.45); color: #a5b4fc; }
+
+/* Theme toggle row */
+.panel-theme-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 2px 0; border-top: 1px solid rgba(255,255,255,0.06);
+}
+.pt-lbl { font-size: 11px; font-weight: 600; color: #475569; transition: color 0.15s; }
+.pt-lbl.active { color: #a5b4fc; }
+
+/* ── Sidebar backdrop overlay ──────────────────────────────── */
+#panel-overlay {
+  position: fixed; inset: 0; z-index: 9049;
+  pointer-events: none; transition: background 0.32s ease;
+}
+#panel-overlay.active { pointer-events: auto; }
+
+/* ── Admin / Tenant visibility classes ─────────────────────── */
+.admin-only { display: none; }
+body.is-admin .admin-only { display: revert; }
+.popup-tenant-mode .admin-edit-only { display: none !important; }
+
+/* ── Admin login button ─────────────────────────────────────── */
+.admin-login-btn { display: none; }
+body.show-admin-btn .admin-login-btn,
+body.is-admin     .admin-login-btn { display: flex; }
+.admin-login-btn {
+  align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; color: #cbd5e1; cursor: pointer; font-size: 12px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.admin-login-btn:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); color: #a5b4fc; }
+
+/* ── Tenant login button ────────────────────────────────────── */
+.tenant-login-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px; margin-top: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; color: #cbd5e1; cursor: pointer; font-size: 12px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+body.is-admin  .tenant-login-btn,
+body.is-tenant .tenant-login-btn { display: none; }
+.tenant-login-btn:hover { background: rgba(20,184,166,0.15); border-color: rgba(20,184,166,0.3); color: #5eead4; }
+
+/* ── Tenant badge ───────────────────────────────────────────── */
+.tenant-badge {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px; margin-top: 6px;
+  background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.25);
+  border-radius: 10px; color: #5eead4; font-size: 12px;
+}
+.tenant-badge.hidden { display: none; }
+.tb-info  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tb-label { font-size: 10px; opacity: 0.7; }
+.tb-store { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-logout {
+  flex-shrink: 0; padding: 4px 8px; border-radius: 6px; font-size: 11px;
+  background: transparent; border: 1px solid rgba(20,184,166,0.35);
+  color: #5eead4; cursor: pointer;
+}
+.tb-logout:hover { background: rgba(20,184,166,0.18); }
+
+/* ── Tenant focus button (bottom-right, above fullscreen) ─── */
+.tenant-focus-btn {
+  position: fixed; bottom: 148px; right: 10px; z-index: 1000;
+  width: 29px; height: 29px;
+  display: none; align-items: center; justify-content: center;
+  background: white; border: none; border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+  cursor: pointer; color: #333;
+  transition: background 0.15s, color 0.15s;
+}
+body.is-tenant .tenant-focus-btn { display: flex; }
+.tenant-focus-btn:hover { background: #f0fdf4; color: #14b8a6; }
+
+/* ── Floor badge (bottom-center) ───────────────────────────── */
+#floor-badge {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(15,23,42,0.9); backdrop-filter: blur(12px);
+  border: 1px solid rgba(99,102,241,0.4); border-radius: 50px;
+  padding: 8px 22px;
+  color: #a5b4fc; font-size: 12px; font-weight: 700; letter-spacing: 0.6px;
+  white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  display: flex; align-items: center; gap: 4px;
+}
+.fb-label { font-size: 12px; font-weight: 700; color: #a5b4fc; letter-spacing: 0.5px; min-width: 64px; text-align: center; }
+.fb-arrow {
+  width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: transparent; color: #a5b4fc; font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s; padding: 0;
+}
+.fb-arrow:hover:not(:disabled) { background: rgba(99,102,241,0.25); }
+.fb-arrow:disabled { color: rgba(165,180,252,0.25); cursor: default; }
+
+/* ── Model loading bar ──────────────────────────────────────── */
+#model-loading-bar {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 50;
+  background: rgba(15,23,42,0.88); backdrop-filter: blur(10px);
+  border: 1px solid rgba(99,102,241,0.35); border-radius: 50px;
+  padding: 7px 16px;
+  color: #a5b4fc; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+.mlb-spinner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid rgba(165,180,252,0.25); border-top-color: #a5b4fc;
+  animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+
+/* ── MapLibre UI overrides ──────────────────────────────────── */
+.maplibregl-ctrl-bottom-right { bottom: 12px; right: 20px; }
+.maplibregl-ctrl-attrib:not(.maplibregl-compact-show) .maplibregl-ctrl-attrib-inner { display: none !important; }
+.maplibregl-ctrl-attrib-button { display: block !important; }
+.maplibregl-ctrl-group {
+  background: rgba(15,23,42,0.88) !important; backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important; overflow: hidden;
+}
+.maplibregl-ctrl-group button { background: transparent !important; }
+.maplibregl-ctrl-icon { filter: invert(1) opacity(0.55); }
+.maplibregl-popup-content {
+  background: rgba(15,23,42,0.95) !important; backdrop-filter: blur(12px);
+  border: 1px solid rgba(99,102,241,0.35); border-radius: 12px !important;
+  padding: 12px 16px !important; color: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+.maplibregl-popup-tip { display: none; }
+.maplibregl-popup-close-button { color: #64748b; font-size: 16px; right: 8px; top: 6px; }
+
+/* ── Search container ───────────────────────────────────────── */
+#search-container {
+  position: fixed; top: 20px; left: 20px; z-index: 200;
+  display: flex; flex-direction: column; gap: 6px;
+  max-width: calc(100vw - 60px);
+}
+.search-top-row {
+  display: flex; flex-direction: row; gap: 8px; align-items: center;
+}
+#search-box { flex-shrink: 0; width: 250px; position: relative; }
+
+.srch-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(15,23,42,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 10px 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  transition: border-color 0.15s;
+}
+.srch-wrap:focus-within { border-color: rgba(99,102,241,0.45); }
+.srch-icon { color: #475569; flex-shrink: 0; }
+#srch-input {
+  flex: 1; background: none; border: none; outline: none;
+  color: #f1f5f9; font-size: 13px; font-weight: 500;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+#srch-input::placeholder { color: #475569; }
+.srch-clear {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex-shrink: 0;
+  background: rgba(255,255,255,0.08); border: none; border-radius: 50%;
+  color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.srch-clear:hover { background: rgba(255,255,255,0.16); color: #f1f5f9; }
+.srch-clear.hidden { display: none; }
+
+.srch-results {
+  position: absolute; top: 100%; left: 0; right: 0;
+  margin-top: 6px; z-index: 201;
+  background: rgba(13,20,38,0.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.srch-results.hidden { display: none; }
+.srch-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+}
+.srch-item:last-child { border-bottom: none; }
+.srch-item:hover { background: rgba(99,102,241,0.12); }
+.srch-thumb {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.srch-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.srch-item-name { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.srch-item-cat  { font-size: 11px; color: #64748b; margin-top: 2px; }
+.srch-empty { padding: 16px 12px; font-size: 12px; color: #475569; text-align: center; }
+
+/* ── Category bar ───────────────────────────────────────────── */
+#category-bar {
+  display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto;
+  padding-bottom: 2px; scrollbar-width: none; align-items: center;
+}
+#category-bar::-webkit-scrollbar { display: none; }
+.cat-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 50px;
+  background: rgba(15,23,42,0.82); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #94a3b8; font-size: 11px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: all 0.18s;
+}
+.cat-chip:hover  { border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+.cat-chip.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.55); color: #a5b4fc; }
+
+/* ── Sidebar toggle button ──────────────────────────────────── */
+#sidebar-toggle-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  background: rgba(15,23,42,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; color: #94a3b8; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 0.15s, color 0.15s;
+}
+#sidebar-toggle-btn:hover { background: rgba(99,102,241,0.18); color: #a5b4fc; }
+
+/* Desktop: pin to top-right corner */
+@media (min-width: 601px) {
+  #sidebar-toggle-btn { position: fixed; top: 20px; right: 20px; align-self: auto; }
+}

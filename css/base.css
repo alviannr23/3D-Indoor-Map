@@ -1,0 +1,61 @@
+/* ═══════════════════════════════════════════════════════════
+   BASE — Reset, body, loading, global utilities
+   Jangan dikirim ke Claude Design.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables (theme tokens) ─────────────────────────── */
+:root {
+  --bg:          #0f172a;
+  --bg-glass:    rgba(15,23,42,0.88);
+  --bg-deep:     rgba(13,20,38,0.98);
+  --border:      rgba(255,255,255,0.08);
+  --border-hi:   rgba(255,255,255,0.12);
+  --accent:      #6366f1;
+  --accent-rgb:  99,102,241;
+  --accent-soft: rgba(99,102,241,0.15);
+  --text:        #f1f5f9;
+  --text-muted:  #94a3b8;
+  --text-dim:    #64748b;
+  --text-dimmer: #475569;
+  --r-xl:  18px;
+  --r-lg:  14px;
+  --r-md:  10px;
+  --r-sm:  8px;
+  --r-xs:  6px;
+  --blur:  blur(16px);
+}
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+.hidden { display: none !important; }
+
+/* ── Body ──────────────────────────────────────────────────── */
+body {
+  width: 100vw; height: 100vh; height: 100dvh;
+  overflow: hidden; position: fixed;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+}
+#map { width: 100%; height: 100%; }
+
+/* ── Loading overlay ───────────────────────────────────────── */
+#loading {
+  position: absolute; inset: 0; z-index: 999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.5s ease;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+
+.loading-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid rgba(99,102,241,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#loading-text { font-size: 13px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.4px; }

@@ -1,0 +1,68 @@
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile overrides (≤600px)
+   ★ Kirim bersama layout.css sebagai referensi mobile layout
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+
+  /* ── Search container ──────────────────────────────────── */
+  #search-container {
+    top: 12px; left: 12px; right: 56px; /* right: leave room for fixed hamburger */
+    max-width: none; width: auto;
+  }
+  .search-top-row { flex-direction: column; gap: 6px; }
+  #search-box     { width: 100%; }
+  #category-bar   { width: 100%; }
+
+  /* Hamburger: fixed top-right on mobile */
+  #sidebar-toggle-btn {
+    position: fixed; top: 12px; right: 12px; align-self: auto;
+  }
+
+  /* ── Sidebar panel: full-screen on mobile ──────────────── */
+  #panel { width: 100%; }
+  #panel.open .panel-header {
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  }
+
+  /* Panel overlay: dark backdrop on mobile */
+  #panel-overlay.active { background: rgba(0,0,0,0.6); }
+
+  /* ── Settings modal ────────────────────────────────────── */
+  #settings-modal {
+    top: 12px; right: 12px; left: 12px; width: auto;
+  }
+
+  /* ── Store popup ───────────────────────────────────────── */
+  #store-popup {
+    width: calc(100vw - 24px);
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px;
+  }
+
+  /* ── Floor badge ───────────────────────────────────────── */
+  #floor-badge {
+    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── Nav step panel ────────────────────────────────────── */
+  #nav-step-panel {
+    left: 12px; right: 12px; width: auto;
+    top: 154px; /* 12 top + 42 search + 36 cats + 36 toggle + 28 gaps */
+    max-height: 200px;
+  }
+
+  /* ── Nav start modal ───────────────────────────────────── */
+  .nav-modal-box  { height: 55vh; max-height: 55vh; }
+  .nav-start-list { flex: 1; }
+
+  /* ── MapLibre controls ─────────────────────────────────── */
+  .maplibregl-ctrl-bottom-right {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+  }
+  .maplibregl-ctrl-bottom-left {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+  }
+}
