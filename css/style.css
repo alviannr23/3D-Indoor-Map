@@ -1525,9 +1525,8 @@ input[type=range].range-slider::-moz-range-thumb {
   flex-shrink: 0; width: 250px; position: relative;
 }
 
-/* ── Sidebar toggle button (below search/categories) ── */
+/* ── Sidebar toggle button ── */
 #sidebar-toggle-btn {
-  align-self: flex-end;
   display: flex; align-items: center; justify-content: center;
   width: 36px; height: 36px;
   background: rgba(15,23,42,0.88);
@@ -1538,6 +1537,14 @@ input[type=range].range-slider::-moz-range-thumb {
   transition: background 0.15s, color 0.15s;
 }
 #sidebar-toggle-btn:hover { background: rgba(99,102,241,0.18); color: #a5b4fc; }
+
+/* Desktop: pin toggle button to top-right corner */
+@media (min-width: 601px) {
+  #sidebar-toggle-btn {
+    position: fixed; top: 20px; right: 20px;
+    align-self: auto;
+  }
+}
 
 .srch-wrap {
   display: flex; align-items: center; gap: 8px;
@@ -1570,7 +1577,8 @@ input[type=range].range-slider::-moz-range-thumb {
 .srch-clear.hidden { display: none; }
 
 .srch-results {
-  margin-top: 6px;
+  position: absolute; top: 100%; left: 0; right: 0;
+  margin-top: 6px; z-index: 201;
   background: rgba(13,20,38,0.97);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.09);
