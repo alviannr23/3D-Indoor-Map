@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, shadowOffsetY: 0.002, buildingColor: '#ddd8d0' },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, shadowOffsetY: 0.002, buildingColor: '#12172a' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, buildingColor: '#ddd8d0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, buildingColor: '#12172a' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -589,9 +589,15 @@ function _addShadowsForFloor(root, parent) {
       side:        THREE.DoubleSide,
     });
     const shadow = new THREE.Mesh(geo, mat);
-    shadow.position.set(cx, floorY + offsetY, cz);
+    shadow.position.set(
+      cx      + (C().shadowOffsetX ?? 0),
+      floorY  + (C().shadowOffsetY ?? 0.002),
+      cz      + (C().shadowOffsetZ ?? 0),
+    );
     shadow.userData.type  = 'store-shadow';
+    shadow.userData.baseX = cx;
     shadow.userData.baseY = floorY;
+    shadow.userData.baseZ = cz;
     shadow.renderOrder    = 1;
     parent.add(shadow);
   });
@@ -1310,7 +1316,9 @@ window.openPanel = (type) => {
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
     syncSD('sun-int',     C().sunInt      ?? 1.2);
     syncSD('shadow-op',       C().shadowOpacity  ?? 0.4);
+    syncSD('shadow-offset-x', C().shadowOffsetX  ?? 0);
     syncSD('shadow-offset-y', C().shadowOffsetY  ?? 0.002);
+    syncSD('shadow-offset-z', C().shadowOffsetZ  ?? 0);
     const bEl = document.getElementById('inp-building-color');
     if (bEl) bEl.value = C().buildingColor ?? (S.darkMode ? '#12172a' : '#ddd8d0');
   }
@@ -1570,7 +1578,9 @@ function _applyStyleValues() {
           m.opacity     = C().shadowOpacity;
           m.needsUpdate = true;
           if (child.userData.baseY !== undefined) {
+            child.position.x = child.userData.baseX + (C().shadowOffsetX ?? 0);
             child.position.y = child.userData.baseY + (C().shadowOffsetY ?? 0.002);
+            child.position.z = child.userData.baseZ + (C().shadowOffsetZ ?? 0);
           }
         } else if (!m.isMeshBasicMaterial) {
           m.roughness   = C().roughness;
@@ -2119,4 +2129,6 @@ bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
 bindSD('shadow-op',       v => { C().shadowOpacity  = v; _applyStyleValues(); });
+bindSD('shadow-offset-x', v => { C().shadowOffsetX  = v; _applyStyleValues(); });
 bindSD('shadow-offset-y', v => { C().shadowOffsetY  = v; _applyStyleValues(); });
+bindSD('shadow-offset-z', v => { C().shadowOffsetZ  = v; _applyStyleValues(); });
