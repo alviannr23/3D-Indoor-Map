@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, shadowScale: 1.0, buildingColor: '#ddd8d0' },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, shadowScale: 1.0, buildingColor: '#12172a' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, shadowBlur: 0.5, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, shadowScale: 1.0, buildingColor: '#ddd8d0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, shadowBlur: 0.5, shadowOffsetX: 0, shadowOffsetY: 0.002, shadowOffsetZ: 0, shadowScale: 1.0, buildingColor: '#12172a' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -510,22 +510,33 @@ function setupMaterials(root) {
 
 /* ── FAKE DROP SHADOW (shape-accurate + soft blur) ───────── */
 let _shadowTex = null;
+let _shadowCtx = null; // kept alive so we can redraw without re-creating the texture
+
+function _updateShadowTex(blur) {
+  if (!_shadowCtx) return;
+  const N = _shadowCtx.canvas.width;
+  _shadowCtx.clearRect(0, 0, N, N);
+  // blur 0→crisp (dark zone wide, thin fade), 1→very soft (fade starts early)
+  const fadeStart = 0.75 - blur * 0.55; // blur=0→0.75, blur=1→0.20
+  const mid       = fadeStart + (1 - fadeStart) * 0.45;
+  const grad = _shadowCtx.createRadialGradient(N/2, N/2, 0, N/2, N/2, N/2);
+  grad.addColorStop(0,          'rgba(0,0,0,0.92)');
+  grad.addColorStop(fadeStart * 0.5, 'rgba(0,0,0,0.85)');
+  grad.addColorStop(fadeStart,  'rgba(0,0,0,0.50)');
+  grad.addColorStop(mid,        'rgba(0,0,0,0.12)');
+  grad.addColorStop(1,          'rgba(0,0,0,0)');
+  _shadowCtx.fillStyle = grad;
+  _shadowCtx.fillRect(0, 0, N, N);
+  if (_shadowTex) _shadowTex.needsUpdate = true;
+}
+
 function _getShadowTex() {
   if (_shadowTex) return _shadowTex;
-  const N   = 256;
-  const cv  = document.createElement('canvas');
-  cv.width  = cv.height = N;
-  const ctx = cv.getContext('2d');
-  ctx.clearRect(0, 0, N, N);
-  // Radial gradient: dark at center (UV 0.5), transparent at edge (UV 0/1)
-  const grad = ctx.createRadialGradient(N/2, N/2, 0, N/2, N/2, N/2);
-  grad.addColorStop(0.0,  'rgba(0,0,0,0.95)');
-  grad.addColorStop(0.35, 'rgba(0,0,0,0.85)');
-  grad.addColorStop(0.65, 'rgba(0,0,0,0.45)');
-  grad.addColorStop(0.85, 'rgba(0,0,0,0.12)');
-  grad.addColorStop(1.0,  'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, N, N);
+  const N  = 256;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = N;
+  _shadowCtx = cv.getContext('2d');
+  _updateShadowTex(C().shadowBlur ?? 0.5);
   _shadowTex = new THREE.CanvasTexture(cv);
   return _shadowTex;
 }
@@ -1318,10 +1329,11 @@ window.openPanel = (type) => {
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
     syncSD('sun-int',     C().sunInt      ?? 1.2);
     syncSD('shadow-op',       C().shadowOpacity  ?? 0.4);
+    syncSD('shadow-blur',     C().shadowBlur     ?? 0.5);
+    syncSD('shadow-scale',    C().shadowScale    ?? 1.0);
     syncSD('shadow-offset-x', C().shadowOffsetX  ?? 0);
     syncSD('shadow-offset-y', C().shadowOffsetY  ?? 0.002);
     syncSD('shadow-offset-z', C().shadowOffsetZ  ?? 0);
-    syncSD('shadow-scale',    C().shadowScale    ?? 1.0);
     const bEl = document.getElementById('inp-building-color');
     if (bEl) bEl.value = C().buildingColor ?? (S.darkMode ? '#12172a' : '#ddd8d0');
   }
@@ -1597,6 +1609,7 @@ function _applyStyleValues() {
   }
   if (_ambientRef) _ambientRef.intensity = C().ambientInt;
   if (_sunRef)     _sunRef.intensity     = C().sunInt;
+  _updateShadowTex(C().shadowBlur ?? 0.5);
   map.triggerRepaint();
 }
 
@@ -2134,7 +2147,8 @@ bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
 bindSD('shadow-op',       v => { C().shadowOpacity  = v; _applyStyleValues(); });
+bindSD('shadow-blur',     v => { C().shadowBlur     = v; _updateShadowTex(v); map.triggerRepaint(); });
+bindSD('shadow-scale',    v => { C().shadowScale    = v; _applyStyleValues(); });
 bindSD('shadow-offset-x', v => { C().shadowOffsetX  = v; _applyStyleValues(); });
 bindSD('shadow-offset-y', v => { C().shadowOffsetY  = v; _applyStyleValues(); });
 bindSD('shadow-offset-z', v => { C().shadowOffsetZ  = v; _applyStyleValues(); });
-bindSD('shadow-scale',    v => { C().shadowScale    = v; _applyStyleValues(); });
