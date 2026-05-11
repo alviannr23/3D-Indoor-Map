@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2 },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1 },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, buildingColor: '#ddd8d0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, buildingColor: '#12172a' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -507,9 +507,30 @@ function setupMaterials(root) {
   });
 }
 
+/* ── FAKE DROP SHADOW ─────────────────────────────────────── */
+function createStoreShadow(box, center, parent) {
+  const w   = box.max.x - box.min.x;
+  const d   = box.max.z - box.min.z;
+  const pad = Math.max(w, d) * 0.18;
+  const geo = new THREE.PlaneGeometry(w + pad * 2, d + pad * 2);
+  const mat = new THREE.MeshBasicMaterial({
+    color:       0x000000,
+    transparent: true,
+    opacity:     C().shadowOpacity,
+    depthWrite:  false,
+  });
+  const plane = new THREE.Mesh(geo, mat);
+  plane.rotation.x    = -Math.PI / 2;
+  plane.position.set(center.x, box.min.y + 1e-5, center.z);
+  plane.renderOrder   = 1;
+  plane.userData.type = 'store-shadow';
+  parent.add(plane);
+}
+
 /* ── STORE DETECTION & LOGO CREATION ─────────────────────── */
 function setupStores(root, floorIdx = 0) {
   const lg = logoGroups[floorIdx] || null;
+  const shadowParent = lg || modelLayer.scene;
   // Group meshes by store key
   const groups = new Map();
   root.traverse((child) => {
@@ -529,6 +550,8 @@ function setupStores(root, floorIdx = 0) {
     meshes.forEach(m => box.expandByObject(m));
     const center = box.getCenter(new THREE.Vector3());
     const topY   = box.max.y;
+
+    createStoreShadow(box, center, shadowParent);
 
     const logo = storeManager.createLogoPlaneMesh(store, center, topY);
     (lg || modelLayer.scene).add(logo);
@@ -623,25 +646,7 @@ map.on('load', () => {
   }, 300);
 
   // Override MapLibre base map colors to match 3D theme
-  if (S.darkMode) {
-    const darkOverrides = [
-      ['background',   'background-color', '#07091a'],
-      ['land',         'background-color', '#0d1020'],
-      ['water',        'fill-color',       '#0a1428'],
-      ['building',     'fill-color',       '#12172a'],
-      ['building',     'fill-outline-color', '#1a2040'],
-    ];
-    darkOverrides.forEach(([layer, prop, val]) => {
-      try { map.setPaintProperty(layer, prop, val); } catch {}
-    });
-  } else {
-    const lightOverrides = [
-      ['water', 'fill-color', '#c8ddf0'],
-    ];
-    lightOverrides.forEach(([layer, prop, val]) => {
-      try { map.setPaintProperty(layer, prop, val); } catch {}
-    });
-  }
+  _applyMaplibreTheme();
 
   // Tunggu sync Supabase selesai (biasanya sudah selesai saat tiles load),
   // lalu baru tambahkan layer 3D dan bangun category bar
@@ -1233,10 +1238,13 @@ window.openPanel = (type) => {
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
     document.getElementById('inp-admin-wa').value      = S.adminWa || '';
-    syncSD('roughness',   C().roughness   ?? 0.7);
+    syncSD('roughness',   C().roughness    ?? 0.7);
     syncSD('metalness',   C().metalness   ?? 0.05);
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
     syncSD('sun-int',     C().sunInt      ?? 1.2);
+    syncSD('shadow-op',   C().shadowOpacity ?? 0.4);
+    const bEl = document.getElementById('inp-building-color');
+    if (bEl) bEl.value = C().buildingColor ?? (S.darkMode ? '#12172a' : '#ddd8d0');
   }
   if (type === 'categories') {
     _buildCategoryAdminUI();
@@ -1489,10 +1497,15 @@ function _applyStyleValues() {
       if (!child.isMesh) return;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach(m => {
-        if (!m || m.isMeshBasicMaterial) return;
-        m.roughness   = C().roughness;
-        m.metalness   = C().metalness;
-        m.needsUpdate = true;
+        if (!m) return;
+        if (child.userData.type === 'store-shadow') {
+          m.opacity     = C().shadowOpacity;
+          m.needsUpdate = true;
+        } else if (!m.isMeshBasicMaterial) {
+          m.roughness   = C().roughness;
+          m.metalness   = C().metalness;
+          m.needsUpdate = true;
+        }
       });
     });
   }
@@ -1502,6 +1515,36 @@ function _applyStyleValues() {
 }
 
 window.applyMapStyle = () => { persist(); _applyStyleValues(); };
+
+/* ── MAPLIBRE THEME ──────────────────────────────────────── */
+function _tryPaint(layer, prop, val) {
+  try { map.setPaintProperty(layer, prop, val); } catch {}
+}
+
+function _applyMaplibreTheme() {
+  const bc = C().buildingColor;
+  if (S.darkMode) {
+    _tryPaint('background',           'background-color',        '#07091a');
+    _tryPaint('land',                 'background-color',        '#0d1020');
+    _tryPaint('water',                'fill-color',              '#0a1428');
+  } else {
+    _tryPaint('water',                'fill-color',              '#c8ddf0');
+  }
+  // Building layers — try all common Carto layer names
+  ['building', 'building_fill', 'building-fill'].forEach(id => {
+    _tryPaint(id, 'fill-color',         bc);
+    _tryPaint(id, 'fill-outline-color', S.darkMode ? '#1a2040' : '#c8c0b4');
+  });
+  ['building-extrusion', 'building_extrusion', '3d-buildings'].forEach(id => {
+    _tryPaint(id, 'fill-extrusion-color', bc);
+  });
+}
+
+window.applyBuildingColor = () => {
+  C().buildingColor = document.getElementById('inp-building-color').value;
+  persist();
+  _applyMaplibreTheme();
+};
 
 /* ── SLIDER BINDINGS ─────────────────────────────────────── */
 // (per-floor sliders are built dynamically in _buildFloorUI)
@@ -1990,7 +2033,8 @@ document.getElementById('toggle-dark').checked = S.darkMode;
 setThemeLabels(S.darkMode);
 
 /* ── Style sliders: live preview ─────────────────────────── */
-bindSD('roughness',   v => { C().roughness  = v; _applyStyleValues(); });
-bindSD('metalness',   v => { C().metalness  = v; _applyStyleValues(); });
-bindSD('ambient-int', v => { C().ambientInt = v; _applyStyleValues(); });
-bindSD('sun-int',     v => { C().sunInt     = v; _applyStyleValues(); });
+bindSD('roughness',   v => { C().roughness     = v; _applyStyleValues(); });
+bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
+bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
+bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
+bindSD('shadow-op',   v => { C().shadowOpacity = v; _applyStyleValues(); });

@@ -221,7 +221,27 @@
           <span class="axis-hint">Directional light dari atas — buat kontras sisi toko</span>
         </div>
 
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Shadow Toko</span>
+            <input type="number" id="inp-shadow-op" class="num-inp" min="0" max="1" step="0.05" value="0.45" />
+          </div>
+          <input type="range" id="sld-shadow-op" class="range-slider" min="0" max="1" step="0.05" value="0.45" />
+          <span class="axis-hint">Kegelapan shadow di sekitar toko — 0 = tidak ada</span>
+        </div>
+
         <button class="btn-apply" onclick="applyMapStyle()">Simpan Style</button>
+
+        <div class="sect-divider"></div>
+
+        <p class="section-label">Warna Bangunan Sekitar (MapLibre)</p>
+        <div class="color-grid">
+          <div class="color-item">
+            <label>Bangunan</label>
+            <input type="color" id="inp-building-color" value="#12172a" oninput="applyBuildingColor()" />
+          </div>
+        </div>
+        <p class="field-hint">Warna gedung di luar area mall pada base map. Berganti warna ketika kamu mengubahnya.</p>
 
       </div><!-- /section-map -->
 
