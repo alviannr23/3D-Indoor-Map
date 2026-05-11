@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, buildingColor: '#ddd8d0' },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, buildingColor: '#12172a' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -1220,8 +1220,17 @@ window.openPanel = (type) => {
     syncSD('metalness',   C().metalness   ?? 0.05);
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
     syncSD('sun-int',     C().sunInt      ?? 1.2);
-const bEl = document.getElementById('inp-building-color');
-    if (bEl) bEl.value = C().buildingColor ?? (S.darkMode ? '#12172a' : '#ddd8d0');
+    const _setColor = (id, key, def) => {
+      const el = document.getElementById(id);
+      if (el) el.value = C()[key] ?? def;
+    };
+    _setColor('inp-land-color',             'landColor',            S.darkMode ? '#0d1020' : '#f5f0e8');
+    _setColor('inp-water-color',            'waterColor',           S.darkMode ? '#0a1428' : '#c8ddf0');
+    _setColor('inp-road-color',             'roadColor',            S.darkMode ? '#1c2235' : '#eae5da');
+    _setColor('inp-road-case-color',        'roadCaseColor',        S.darkMode ? '#111828' : '#d5cfc4');
+    _setColor('inp-park-color',             'parkColor',            S.darkMode ? '#0c1a12' : '#d4e8c8');
+    _setColor('inp-building-color',         'buildingColor',        S.darkMode ? '#12172a' : '#ddd8d0');
+    _setColor('inp-building-outline-color', 'buildingOutlineColor', S.darkMode ? '#1a2040' : '#c8bfb0');
   }
   if (type === 'categories') {
     _buildCategoryAdminUI();
@@ -1496,38 +1505,85 @@ function _tryPaint(layer, prop, val) {
 }
 
 function _applyMaplibreTheme() {
-  if (S.darkMode) {
-    _tryPaint('background', 'background-color', '#07091a');
-    _tryPaint('land',       'background-color', '#0d1020');
-    _tryPaint('water',      'fill-color',       '#0a1428');
-  } else {
-    _tryPaint('water', 'fill-color', '#c8ddf0');
-  }
-  _applyBuildingColorToStyle();
+  _applyMaplibreColors();
 }
 
-function _applyBuildingColorToStyle() {
-  const bc  = C().buildingColor;
-  const oc  = S.darkMode ? '#1a2040' : '#b0a898';
+function _applyMaplibreColors() {
+  const c = C();
   try {
     (map.getStyle()?.layers || []).forEach(layer => {
-      const id = layer.id.toLowerCase();
-      if (!id.includes('building') && !id.includes('construct')) return;
-      if (layer.type === 'fill-extrusion') {
-        _tryPaint(layer.id, 'fill-extrusion-color',   bc);
-        _tryPaint(layer.id, 'fill-extrusion-opacity',  0.9);
-      } else if (layer.type === 'fill') {
-        _tryPaint(layer.id, 'fill-color',         bc);
-        _tryPaint(layer.id, 'fill-outline-color', oc);
+      const id   = layer.id.toLowerCase();
+      const type = layer.type;
+      if (type === 'symbol') return; // skip all text/icon layers
+
+      // Background (base land color)
+      if (type === 'background') {
+        _tryPaint(layer.id, 'background-color', c.landColor);
+        return;
+      }
+
+      // Water (fill + line waterways)
+      if (id.includes('water') || id.includes('ocean') || id.includes('lake') || id.includes('sea') || id.includes('waterway')) {
+        if (type === 'fill') _tryPaint(layer.id, 'fill-color', c.waterColor);
+        if (type === 'line') _tryPaint(layer.id, 'line-color', c.waterColor);
+        return;
+      }
+
+      // Buildings
+      if (id.includes('building') || id.includes('construct')) {
+        if (type === 'fill-extrusion') {
+          _tryPaint(layer.id, 'fill-extrusion-color',   c.buildingColor);
+          _tryPaint(layer.id, 'fill-extrusion-opacity', 0.9);
+        } else if (type === 'fill') {
+          _tryPaint(layer.id, 'fill-color',         c.buildingColor);
+          _tryPaint(layer.id, 'fill-outline-color', c.buildingOutlineColor);
+        }
+        return;
+      }
+
+      // Parks / green areas
+      const isGreen = id.includes('park') || id.includes('grass') || id.includes('wood') ||
+                      id.includes('forest') || id.includes('garden') || id.includes('vegetation') ||
+                      id.includes('meadow') || id.includes('scrub') || id.includes('pitch') ||
+                      id.includes('farmland') || id.includes('orchard');
+      if (type === 'fill' && isGreen) {
+        _tryPaint(layer.id, 'fill-color', c.parkColor);
+        return;
+      }
+
+      // Roads (line layers)
+      const isRoad = id.includes('road') || id.includes('street') || id.includes('motorway') ||
+                     id.includes('highway') || id.includes('trunk') || id.includes('tunnel') ||
+                     id.includes('bridge');
+      if (type === 'line' && isRoad) {
+        const isCase = id.includes('case') || id.includes('-bg') || id.includes('outline') || id.includes('border');
+        _tryPaint(layer.id, 'line-color', isCase ? c.roadCaseColor : c.roadColor);
+        return;
+      }
+
+      // General land fills (landcover, landuse, etc. not already matched)
+      const isLand = id.includes('landcover') || id.includes('landuse') || id.includes('land-') ||
+                     id.includes('earth') || id.includes('ground') || id.includes('residential') ||
+                     id.includes('cemetery') || id.includes('sand') || id.includes('rock');
+      if (type === 'fill' && isLand) {
+        _tryPaint(layer.id, 'fill-color', c.landColor);
       }
     });
   } catch {}
 }
 
-window.applyBuildingColor = () => {
-  C().buildingColor = document.getElementById('inp-building-color').value;
+window.applyMaplibreColors = () => {
+  const c = C();
+  const el = id => document.getElementById(id)?.value;
+  if (el('inp-land-color'))             c.landColor            = el('inp-land-color');
+  if (el('inp-water-color'))            c.waterColor           = el('inp-water-color');
+  if (el('inp-road-color'))             c.roadColor            = el('inp-road-color');
+  if (el('inp-road-case-color'))        c.roadCaseColor        = el('inp-road-case-color');
+  if (el('inp-park-color'))             c.parkColor            = el('inp-park-color');
+  if (el('inp-building-color'))         c.buildingColor        = el('inp-building-color');
+  if (el('inp-building-outline-color')) c.buildingOutlineColor = el('inp-building-outline-color');
   persist();
-  _applyBuildingColorToStyle();
+  _applyMaplibreColors();
 };
 
 /* ── SLIDER BINDINGS ─────────────────────────────────────── */
