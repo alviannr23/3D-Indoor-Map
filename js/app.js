@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, buildingColor: '#ddd8d0' },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, buildingColor: '#12172a' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, shadowOpacity: 0.15, shadowOffsetY: 0.002, buildingColor: '#ddd8d0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, shadowOpacity: 0.45, shadowOffsetY: 0.002, buildingColor: '#12172a' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -512,16 +512,20 @@ function setupMaterials(root) {
 let _shadowTex = null;
 function _getShadowTex() {
   if (_shadowTex) return _shadowTex;
-  const N   = 128;
+  const N   = 256;
   const cv  = document.createElement('canvas');
   cv.width  = cv.height = N;
   const ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, N, N);
-  ctx.shadowColor   = 'black';
-  ctx.shadowBlur    = N * 0.32;
-  ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
-  ctx.fillStyle     = 'black';
-  ctx.fillRect(N * 0.28, N * 0.28, N * 0.44, N * 0.44);
+  // Radial gradient: dark at center (UV 0.5), transparent at edge (UV 0/1)
+  const grad = ctx.createRadialGradient(N/2, N/2, 0, N/2, N/2, N/2);
+  grad.addColorStop(0.0,  'rgba(0,0,0,0.95)');
+  grad.addColorStop(0.35, 'rgba(0,0,0,0.85)');
+  grad.addColorStop(0.65, 'rgba(0,0,0,0.45)');
+  grad.addColorStop(0.85, 'rgba(0,0,0,0.12)');
+  grad.addColorStop(1.0,  'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, N, N);
   _shadowTex = new THREE.CanvasTexture(cv);
   return _shadowTex;
 }
@@ -549,23 +553,34 @@ function _addShadowsForFloor(root, parent) {
     cx /= pos.count; cz /= pos.count;
 
     const floorY  = box.min.y;
-    const expand  = 1.15;
-    const minX = box.min.x, rangeX = box.max.x - box.min.x || 1;
-    const minZ = box.min.z, rangeZ = box.max.z - box.min.z || 1;
+    const expand  = 1.5;
 
-    // UVs for soft-blur texture (box projection from bounding box)
+    // First pass: compute max radius for radial UV normalisation
+    let maxR = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const dx = pos.getX(i) - cx, dz = pos.getZ(i) - cz;
+      maxR = Math.max(maxR, Math.sqrt(dx*dx + dz*dz));
+    }
+    if (maxR < 1e-6) maxR = 1;
+
+    // UVs: radial projection — center→UV(0.5,0.5), outer edge→UV near 0/1
+    // With radial gradient texture (dark at UV 0.5, transparent at UV 0/1)
+    // this produces a soft halo visible just outside the store footprint.
     const uvArr = new Float32Array(pos.count * 2);
     for (let i = 0; i < pos.count; i++) {
       const wx = pos.getX(i), wz = pos.getZ(i);
-      // Centre geometry at local origin, expand, flatten Y
-      pos.setXYZ(i, (wx - cx) * expand, 0, (wz - cz) * expand);
-      // UV from world-space bounding box (expanded same ratio)
-      uvArr[i * 2]     = (wx - minX) / rangeX;
-      uvArr[i * 2 + 1] = (wz - minZ) / rangeZ;
+      const lx = (wx - cx) * expand, lz = (wz - cz) * expand;
+      // Radial distance normalised to expanded radius → UV offset from center
+      const r = Math.sqrt(lx*lx + lz*lz) / (maxR * expand);
+      const ang = Math.atan2(lz, lx);
+      uvArr[i * 2]     = 0.5 + Math.cos(ang) * r * 0.5;
+      uvArr[i * 2 + 1] = 0.5 + Math.sin(ang) * r * 0.5;
+      pos.setXYZ(i, lx, 0, lz);
     }
     pos.needsUpdate = true;
     geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
 
+    const offsetY = C().shadowOffsetY ?? 0.002;
     const mat = new THREE.MeshBasicMaterial({
       map:         tex,
       transparent: true,
@@ -574,10 +589,10 @@ function _addShadowsForFloor(root, parent) {
       side:        THREE.DoubleSide,
     });
     const shadow = new THREE.Mesh(geo, mat);
-    // Position mesh at world-space centroid (same coordinate system as logos)
-    shadow.position.set(cx, floorY + 0.002, cz);
-    shadow.userData.type = 'store-shadow';
-    shadow.renderOrder   = 1;
+    shadow.position.set(cx, floorY + offsetY, cz);
+    shadow.userData.type  = 'store-shadow';
+    shadow.userData.baseY = floorY;
+    shadow.renderOrder    = 1;
     parent.add(shadow);
   });
 }
@@ -1294,7 +1309,8 @@ window.openPanel = (type) => {
     syncSD('metalness',   C().metalness   ?? 0.05);
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
     syncSD('sun-int',     C().sunInt      ?? 1.2);
-    syncSD('shadow-op',   C().shadowOpacity ?? 0.4);
+    syncSD('shadow-op',       C().shadowOpacity  ?? 0.4);
+    syncSD('shadow-offset-y', C().shadowOffsetY  ?? 0.002);
     const bEl = document.getElementById('inp-building-color');
     if (bEl) bEl.value = C().buildingColor ?? (S.darkMode ? '#12172a' : '#ddd8d0');
   }
@@ -1553,6 +1569,9 @@ function _applyStyleValues() {
         if (child.userData.type === 'store-shadow') {
           m.opacity     = C().shadowOpacity;
           m.needsUpdate = true;
+          if (child.userData.baseY !== undefined) {
+            child.position.y = child.userData.baseY + (C().shadowOffsetY ?? 0.002);
+          }
         } else if (!m.isMeshBasicMaterial) {
           m.roughness   = C().roughness;
           m.metalness   = C().metalness;
@@ -2099,4 +2118,5 @@ bindSD('roughness',   v => { C().roughness     = v; _applyStyleValues(); });
 bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
-bindSD('shadow-op',   v => { C().shadowOpacity = v; _applyStyleValues(); });
+bindSD('shadow-op',       v => { C().shadowOpacity  = v; _applyStyleValues(); });
+bindSD('shadow-offset-y', v => { C().shadowOffsetY  = v; _applyStyleValues(); });

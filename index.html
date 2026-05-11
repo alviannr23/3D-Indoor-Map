@@ -230,6 +230,15 @@
           <span class="axis-hint">Kegelapan shadow di sekitar toko — 0 = tidak ada</span>
         </div>
 
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Posisi Shadow (Y)</span>
+            <input type="number" id="inp-shadow-offset-y" class="num-inp" min="-0.02" max="0.05" step="0.001" value="0.002" />
+          </div>
+          <input type="range" id="sld-shadow-offset-y" class="range-slider" min="-0.02" max="0.05" step="0.001" value="0.002" />
+          <span class="axis-hint">Ketinggian shadow — geser ke bawah jika shadow terlalu tinggi</span>
+        </div>
+
         <button class="btn-apply" onclick="applyMapStyle()">Simpan Style</button>
 
         <div class="sect-divider"></div>
