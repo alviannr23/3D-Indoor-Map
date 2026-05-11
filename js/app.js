@@ -516,12 +516,11 @@ function _getShadowTex() {
   const cv  = document.createElement('canvas');
   cv.width  = cv.height = N;
   const ctx = cv.getContext('2d');
-  // Draw a blurred rectangle in centre → gives box-shaped soft shadow
   ctx.clearRect(0, 0, N, N);
-  ctx.shadowColor  = 'black';
-  ctx.shadowBlur   = N * 0.32;
+  ctx.shadowColor   = 'black';
+  ctx.shadowBlur    = N * 0.32;
   ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
-  ctx.fillStyle    = 'black';
+  ctx.fillStyle     = 'black';
   ctx.fillRect(N * 0.28, N * 0.28, N * 0.44, N * 0.44);
   _shadowTex = new THREE.CanvasTexture(cv);
   return _shadowTex;
@@ -539,21 +538,44 @@ function _addShadowsForFloor(root, parent) {
     const box = new THREE.Box3().setFromObject(child);
     if ((box.max.y - box.min.y) < 1e-4) return; // skip flat / non-extruded
 
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-    const w = (box.max.x - box.min.x) * 1.5; // 50% wider for soft shadow spread
-    const d = (box.max.z - box.min.z) * 1.5;
+    // Clone geometry and transform to world space
+    const geo = child.geometry.clone();
+    geo.applyMatrix4(child.matrixWorld);
 
-    const geo = new THREE.PlaneGeometry(w, d);
+    const pos = geo.attributes.position;
+    // World-space centroid (XZ only)
+    let cx = 0, cz = 0;
+    for (let i = 0; i < pos.count; i++) { cx += pos.getX(i); cz += pos.getZ(i); }
+    cx /= pos.count; cz /= pos.count;
+
+    const floorY  = box.min.y;
+    const expand  = 1.15;
+    const minX = box.min.x, rangeX = box.max.x - box.min.x || 1;
+    const minZ = box.min.z, rangeZ = box.max.z - box.min.z || 1;
+
+    // UVs for soft-blur texture (box projection from bounding box)
+    const uvArr = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      const wx = pos.getX(i), wz = pos.getZ(i);
+      // Centre geometry at local origin, expand, flatten Y
+      pos.setXYZ(i, (wx - cx) * expand, 0, (wz - cz) * expand);
+      // UV from world-space bounding box (expanded same ratio)
+      uvArr[i * 2]     = (wx - minX) / rangeX;
+      uvArr[i * 2 + 1] = (wz - minZ) / rangeZ;
+    }
+    pos.needsUpdate = true;
+    geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+
     const mat = new THREE.MeshBasicMaterial({
       map:         tex,
       transparent: true,
       opacity:     C().shadowOpacity,
       depthWrite:  false,
+      side:        THREE.DoubleSide,
     });
-    const shadow    = new THREE.Mesh(geo, mat);
-    shadow.rotation.x    = -Math.PI / 2;
-    shadow.position.set(center.x, box.min.y + 0.001, center.z);
+    const shadow = new THREE.Mesh(geo, mat);
+    // Position mesh at world-space centroid (same coordinate system as logos)
+    shadow.position.set(cx, floorY + 0.002, cz);
     shadow.userData.type = 'store-shadow';
     shadow.renderOrder   = 1;
     parent.add(shadow);
