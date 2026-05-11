@@ -415,6 +415,7 @@ function _loadSingleFloor(scene, i) {
       _preNormalizeMeshNames(gltf.scene, group);
       setupMaterials(gltf.scene);
       setupStores(gltf.scene, i);
+      _addShadowsForFloor(gltf.scene, logoGroups[i] || modelLayer.scene);
       if (i === 0) _hideModelBar();
       _buildFloorSwitcher();
       map.triggerRepaint();
@@ -507,30 +508,54 @@ function setupMaterials(root) {
   });
 }
 
-/* ── FAKE DROP SHADOW ─────────────────────────────────────── */
-function createStoreShadow(box, center, parent) {
-  const w   = box.max.x - box.min.x;
-  const d   = box.max.z - box.min.z;
-  const pad = Math.max(w, d) * 0.18;
-  const geo = new THREE.PlaneGeometry(w + pad * 2, d + pad * 2);
-  const mat = new THREE.MeshBasicMaterial({
-    color:       0x000000,
-    transparent: true,
-    opacity:     C().shadowOpacity,
-    depthWrite:  false,
+/* ── FAKE DROP SHADOW (shape-accurate) ───────────────────── */
+function _addShadowsForFloor(root, parent) {
+  root.traverse((child) => {
+    if (!child.isMesh) return;
+    const t = child.userData.type;
+    if (t === 'floor' || t === 'logo' || t === 'store-shadow') return;
+
+    const box = new THREE.Box3().setFromObject(child);
+    if ((box.max.y - box.min.y) < 1e-4) return; // skip flat / non-extruded
+
+    const geo = child.geometry.clone();
+    child.updateWorldMatrix(true, false);
+    geo.applyMatrix4(child.matrixWorld);
+
+    // Compute centroid of all vertices (XZ plane)
+    const pos = geo.attributes.position;
+    let cx = 0, cz = 0;
+    for (let i = 0; i < pos.count; i++) { cx += pos.getX(i); cz += pos.getZ(i); }
+    cx /= pos.count; cz /= pos.count;
+
+    // Flatten to just above floor, expand 15% outward from centroid
+    const floorY = box.min.y + 0.001;
+    for (let i = 0; i < pos.count; i++) {
+      pos.setXYZ(i,
+        cx + (pos.getX(i) - cx) * 1.15,
+        floorY,
+        cz + (pos.getZ(i) - cz) * 1.15,
+      );
+    }
+    pos.needsUpdate = true;
+
+    const mat = new THREE.MeshBasicMaterial({
+      color:       0x000000,
+      transparent: true,
+      opacity:     C().shadowOpacity,
+      depthWrite:  false,
+      side:        THREE.DoubleSide,
+    });
+    const shadow = new THREE.Mesh(geo, mat);
+    shadow.userData.type = 'store-shadow';
+    shadow.renderOrder   = 1;
+    parent.add(shadow);
   });
-  const plane = new THREE.Mesh(geo, mat);
-  plane.rotation.x    = -Math.PI / 2;
-  plane.position.set(center.x, box.min.y + 1e-5, center.z);
-  plane.renderOrder   = 1;
-  plane.userData.type = 'store-shadow';
-  parent.add(plane);
 }
 
 /* ── STORE DETECTION & LOGO CREATION ─────────────────────── */
 function setupStores(root, floorIdx = 0) {
   const lg = logoGroups[floorIdx] || null;
-  const shadowParent = lg || modelLayer.scene;
   // Group meshes by store key
   const groups = new Map();
   root.traverse((child) => {
@@ -550,8 +575,6 @@ function setupStores(root, floorIdx = 0) {
     meshes.forEach(m => box.expandByObject(m));
     const center = box.getCenter(new THREE.Vector3());
     const topY   = box.max.y;
-
-    createStoreShadow(box, center, shadowParent);
 
     const logo = storeManager.createLogoPlaneMesh(store, center, topY);
     (lg || modelLayer.scene).add(logo);
