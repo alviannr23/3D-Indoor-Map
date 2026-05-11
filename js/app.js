@@ -508,41 +508,55 @@ function setupMaterials(root) {
   });
 }
 
-/* ── FAKE DROP SHADOW (shape-accurate + soft blur) ───────── */
-let _shadowTex = null;
-let _shadowCtx = null; // kept alive so we can redraw without re-creating the texture
+/* ── FAKE DROP SHADOW (shape-accurate + edge blur) ──────────── */
 
-function _updateShadowTex(blur) {
-  if (!_shadowCtx) return;
-  const N = _shadowCtx.canvas.width;
-  _shadowCtx.clearRect(0, 0, N, N);
-  // blur 0→crisp (dark zone wide, thin fade), 1→very soft (fade starts early)
-  const fadeStart = 0.75 - blur * 0.55; // blur=0→0.75, blur=1→0.20
-  const mid       = fadeStart + (1 - fadeStart) * 0.45;
-  const grad = _shadowCtx.createRadialGradient(N/2, N/2, 0, N/2, N/2, N/2);
-  grad.addColorStop(0,          'rgba(0,0,0,0.92)');
-  grad.addColorStop(fadeStart * 0.5, 'rgba(0,0,0,0.85)');
-  grad.addColorStop(fadeStart,  'rgba(0,0,0,0.50)');
-  grad.addColorStop(mid,        'rgba(0,0,0,0.12)');
-  grad.addColorStop(1,          'rgba(0,0,0,0)');
-  _shadowCtx.fillStyle = grad;
-  _shadowCtx.fillRect(0, 0, N, N);
-  if (_shadowTex) _shadowTex.needsUpdate = true;
+// Draw the original (pre-expansion) footprint shape onto ctx with Gaussian edge blur.
+// Geometry positions are already expanded (lx = orig * expand), centered at origin.
+// Placing original shape at inner ~67% of canvas (for expand=1.5) leaves an outer
+// zone that blur bleeds into — making edges soft while matching the actual store shape.
+function _drawShadowOnCanvas(ctx, pos, idx, minX, rangeX, minZ, rangeZ, expand, N, blur) {
+  ctx.clearRect(0, 0, N, N);
+  const blurPx = blur * 36;
+  ctx.filter    = blurPx > 0.3 ? `blur(${blurPx.toFixed(1)}px)` : 'none';
+  ctx.fillStyle = 'black';
+  const toCx = lx => (lx / expand - minX) / rangeX * N;
+  const toCz = lz => (lz / expand - minZ) / rangeZ * N;
+  ctx.beginPath();
+  if (idx) {
+    for (let i = 0; i < idx.count; i += 3) {
+      const a = idx.getX(i), b = idx.getX(i + 1), c = idx.getX(i + 2);
+      ctx.moveTo(toCx(pos.getX(a)), toCz(pos.getZ(a)));
+      ctx.lineTo(toCx(pos.getX(b)), toCz(pos.getZ(b)));
+      ctx.lineTo(toCx(pos.getX(c)), toCz(pos.getZ(c)));
+      ctx.closePath();
+    }
+  } else {
+    for (let i = 0; i < pos.count; i += 3) {
+      ctx.moveTo(toCx(pos.getX(i)),     toCz(pos.getZ(i)));
+      ctx.lineTo(toCx(pos.getX(i + 1)), toCz(pos.getZ(i + 1)));
+      ctx.lineTo(toCx(pos.getX(i + 2)), toCz(pos.getZ(i + 2)));
+      ctx.closePath();
+    }
+  }
+  ctx.fill();
+  ctx.filter = 'none';
 }
 
-function _getShadowTex() {
-  if (_shadowTex) return _shadowTex;
-  const N  = 256;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = N;
-  _shadowCtx = cv.getContext('2d');
-  _updateShadowTex(C().shadowBlur ?? 0.5);
-  _shadowTex = new THREE.CanvasTexture(cv);
-  return _shadowTex;
+// Live-update blur on all existing shadow meshes (each has its own canvas texture).
+function _updateShadowBlur(blur) {
+  if (!modelLayer.scene) return;
+  modelLayer.scene.traverse(child => {
+    if (child.userData.type !== 'store-shadow') return;
+    const d = child.userData.shadowDraw;
+    if (!d) return;
+    _drawShadowOnCanvas(d.ctx, child.geometry.attributes.position, child.geometry.index,
+                        d.minX, d.rangeX, d.minZ, d.rangeZ, d.expand, d.N, blur);
+    child.material.map.needsUpdate = true;
+  });
 }
 
 function _addShadowsForFloor(root, parent) {
-  const tex = _getShadowTex();
+  const blurAmount = C().shadowBlur ?? 0.5;
 
   root.traverse((child) => {
     if (!child.isMesh) return;
@@ -551,53 +565,54 @@ function _addShadowsForFloor(root, parent) {
 
     child.updateWorldMatrix(true, false);
     const box = new THREE.Box3().setFromObject(child);
-    if ((box.max.y - box.min.y) < 1e-4) return; // skip flat / non-extruded
+    if ((box.max.y - box.min.y) < 1e-4) return;
 
-    // Clone geometry and transform to world space
     const geo = child.geometry.clone();
     geo.applyMatrix4(child.matrixWorld);
 
     const pos = geo.attributes.position;
-    // World-space centroid (XZ only)
     let cx = 0, cz = 0;
     for (let i = 0; i < pos.count; i++) { cx += pos.getX(i); cz += pos.getZ(i); }
     cx /= pos.count; cz /= pos.count;
 
-    const floorY  = box.min.y;
-    const expand  = 1.5;
+    const floorY = box.min.y;
+    const expand = 1.5;
 
-    // First pass: compute max radius for radial UV normalisation
-    let maxR = 0;
+    // Expand from centroid + flatten to Y=0
     for (let i = 0; i < pos.count; i++) {
-      const dx = pos.getX(i) - cx, dz = pos.getZ(i) - cz;
-      maxR = Math.max(maxR, Math.sqrt(dx*dx + dz*dz));
-    }
-    if (maxR < 1e-6) maxR = 1;
-
-    // UVs: radial projection — center→UV(0.5,0.5), outer edge→UV near 0/1
-    // With radial gradient texture (dark at UV 0.5, transparent at UV 0/1)
-    // this produces a soft halo visible just outside the store footprint.
-    const uvArr = new Float32Array(pos.count * 2);
-    for (let i = 0; i < pos.count; i++) {
-      const wx = pos.getX(i), wz = pos.getZ(i);
-      const lx = (wx - cx) * expand, lz = (wz - cz) * expand;
-      // Radial distance normalised to expanded radius → UV offset from center
-      const r = Math.sqrt(lx*lx + lz*lz) / (maxR * expand);
-      const ang = Math.atan2(lz, lx);
-      uvArr[i * 2]     = 0.5 + Math.cos(ang) * r * 0.5;
-      uvArr[i * 2 + 1] = 0.5 + Math.sin(ang) * r * 0.5;
-      pos.setXYZ(i, lx, 0, lz);
+      pos.setXYZ(i, (pos.getX(i) - cx) * expand, 0, (pos.getZ(i) - cz) * expand);
     }
     pos.needsUpdate = true;
+
+    // Box UV from expanded bounds — UV 0→1 maps the full expanded geometry.
+    // The original footprint sits at UV ≈ [1/6, 5/6] (inner zone); the outer
+    // UV zone [0, 1/6] and [5/6, 1] is where the blur bleeds onto the mesh.
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      minX = Math.min(minX, pos.getX(i)); maxX = Math.max(maxX, pos.getX(i));
+      minZ = Math.min(minZ, pos.getZ(i)); maxZ = Math.max(maxZ, pos.getZ(i));
+    }
+    const rangeX = maxX - minX || 1;
+    const rangeZ = maxZ - minZ || 1;
+
+    const uvArr = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      uvArr[i * 2]     = (pos.getX(i) - minX) / rangeX;
+      uvArr[i * 2 + 1] = (pos.getZ(i) - minZ) / rangeZ;
+    }
     geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
 
-    const offsetY = C().shadowOffsetY ?? 0.002;
+    // Per-shadow canvas: shape drawn + Gaussian blur applied via ctx.filter
+    const N  = 256;
+    const cv = document.createElement('canvas');
+    cv.width  = cv.height = N;
+    const shapeCtx = cv.getContext('2d');
+    _drawShadowOnCanvas(shapeCtx, pos, geo.index, minX, rangeX, minZ, rangeZ, expand, N, blurAmount);
+    const tex = new THREE.CanvasTexture(cv);
+
     const mat = new THREE.MeshBasicMaterial({
-      map:         tex,
-      transparent: true,
-      opacity:     C().shadowOpacity,
-      depthWrite:  false,
-      side:        THREE.DoubleSide,
+      map: tex, transparent: true, opacity: C().shadowOpacity,
+      depthWrite: false, side: THREE.DoubleSide,
     });
     const shadow = new THREE.Mesh(geo, mat);
     shadow.position.set(
@@ -607,11 +622,12 @@ function _addShadowsForFloor(root, parent) {
     );
     const sc = C().shadowScale ?? 1.0;
     shadow.scale.set(sc, 1, sc);
-    shadow.userData.type  = 'store-shadow';
-    shadow.userData.baseX = cx;
-    shadow.userData.baseY = floorY;
-    shadow.userData.baseZ = cz;
-    shadow.renderOrder    = 1;
+    shadow.userData.type       = 'store-shadow';
+    shadow.userData.baseX      = cx;
+    shadow.userData.baseY      = floorY;
+    shadow.userData.baseZ      = cz;
+    shadow.userData.shadowDraw = { ctx: shapeCtx, minX, rangeX, minZ, rangeZ, expand, N };
+    shadow.renderOrder         = 1;
     parent.add(shadow);
   });
 }
@@ -1609,7 +1625,7 @@ function _applyStyleValues() {
   }
   if (_ambientRef) _ambientRef.intensity = C().ambientInt;
   if (_sunRef)     _sunRef.intensity     = C().sunInt;
-  _updateShadowTex(C().shadowBlur ?? 0.5);
+  _updateShadowBlur(C().shadowBlur ?? 0.5);
   map.triggerRepaint();
 }
 
@@ -2147,7 +2163,7 @@ bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
 bindSD('shadow-op',       v => { C().shadowOpacity  = v; _applyStyleValues(); });
-bindSD('shadow-blur',     v => { C().shadowBlur     = v; _updateShadowTex(v); map.triggerRepaint(); });
+bindSD('shadow-blur',     v => { C().shadowBlur     = v; _updateShadowBlur(v); map.triggerRepaint(); });
 bindSD('shadow-scale',    v => { C().shadowScale    = v; _applyStyleValues(); });
 bindSD('shadow-offset-x', v => { C().shadowOffsetX  = v; _applyStyleValues(); });
 bindSD('shadow-offset-y', v => { C().shadowOffsetY  = v; _applyStyleValues(); });
