@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#d4d4d8', defaultColor: '#e4e4e7', storeColor: '#1500ff' },
-  dark:  { floorColor: '#3a3a4a', defaultColor: '#4a4a5a', storeColor: '#1500ff' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -42,6 +42,12 @@ let _isAdmin = false; // true when admin is logged in
 window.__tenantEmail    = null;
 window.__tenantStoreKey = null;
 window.__tenantEventIdx = null;
+
+const _OLD_DEFAULTS = {
+  light: { floorColor: '#d4d4d8', defaultColor: '#e4e4e7' },
+  dark:  { floorColor: '#3a3a4a', defaultColor: '#4a4a5a' },
+};
+const _migrateColor = (val, oldVal, newVal) => (val === oldVal ? newVal : val);
 
 let S = (() => {
   try {
@@ -59,15 +65,19 @@ let S = (() => {
           ...f,
         }))
       : DEFAULTS.floors.map((f, i) => ({ ...f, ...g, ...(i > 0 ? { offsetX: 0, offsetY: 0, rotationY: 0 } : {}) }));
-    return {
-      ...DEFAULTS, ...saved,
-      floors,
-      light: { ...DEFAULTS.light, ...(saved.light || {}) },
-      dark:  { ...DEFAULTS.dark,  ...(saved.dark  || {}) },
-    };
+    const sl = { ...DEFAULTS.light, ...(saved.light || {}) };
+    const sd = { ...DEFAULTS.dark,  ...(saved.dark  || {}) };
+    // Migrate: if user had old default colors, upgrade to new defaults
+    sl.floorColor   = _migrateColor(sl.floorColor,   _OLD_DEFAULTS.light.floorColor,   DEFAULTS.light.floorColor);
+    sl.defaultColor = _migrateColor(sl.defaultColor,  _OLD_DEFAULTS.light.defaultColor, DEFAULTS.light.defaultColor);
+    sd.floorColor   = _migrateColor(sd.floorColor,    _OLD_DEFAULTS.dark.floorColor,    DEFAULTS.dark.floorColor);
+    sd.defaultColor = _migrateColor(sd.defaultColor,  _OLD_DEFAULTS.dark.defaultColor,  DEFAULTS.dark.defaultColor);
+    return { ...DEFAULTS, ...saved, floors, light: sl, dark: sd };
   } catch { return { ...DEFAULTS, light: { ...DEFAULTS.light }, dark: { ...DEFAULTS.dark } }; }
 })();
 window.__adminWa = S.adminWa || '';
+// Persist migrated colors immediately so next reload uses new values
+localStorage.setItem('imap_cfg', JSON.stringify(S));
 
 /* ── SUPABASE STARTUP SYNC (background — tidak blokir map) ── */
 async function _dbSync() {
@@ -242,14 +252,23 @@ const modelLayer = {
       this.camera = new THREE.Camera();
       this.scene  = new THREE.Scene();
 
-      this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-      const hemi = new THREE.HemisphereLight(0xddeeff, 0x3a3a3a, 0.8);
-      this.scene.add(hemi);
-      const sun = new THREE.DirectionalLight(0xfff5e0, 1.5);
-      sun.position.set(100, 200, 100);
-      this.scene.add(sun);
+      if (S.darkMode) {
+        this.scene.add(new THREE.AmbientLight(0x9baac8, 0.65));
+        const hemi = new THREE.HemisphereLight(0xb4c4e0, 0x0d1225, 0.5);
+        this.scene.add(hemi);
+        const sun = new THREE.DirectionalLight(0xc8d4f0, 1.1);
+        sun.position.set(100, 200, 100);
+        this.scene.add(sun);
+      } else {
+        this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+        const hemi = new THREE.HemisphereLight(0xfff8f0, 0x7a7060, 0.7);
+        this.scene.add(hemi);
+        const sun = new THREE.DirectionalLight(0xfff0d8, 1.2);
+        sun.position.set(100, 200, 80);
+        this.scene.add(sun);
+      }
 
-      storeManager = new StoreManager(this.scene, C().storeColor);
+      storeManager = new StoreManager(this.scene, C().storeColor, S.darkMode);
       Popup.init(storeManager);
       loadFloors(this.scene);
 
@@ -443,8 +462,8 @@ function _applyMatColor(child, color) {
     if (m.map)          m.map          = null;
     if (m.vertexColors) m.vertexColors = false;
     m.color.set(color);
-    m.roughness   = 1;
-    m.metalness   = 0;
+    m.roughness   = S.darkMode ? 0.5 : 0.7;
+    m.metalness   = S.darkMode ? 0.15 : 0.05;
     m.needsUpdate = true;
   });
 }
@@ -480,8 +499,8 @@ function setupMaterials(root) {
       mat.color.set(C().defaultColor);
       if (mat.map) mat.map = null;
     }
-    mat.roughness   = 1;
-    mat.metalness   = 0;
+    mat.roughness   = S.darkMode ? 0.5 : 0.7;
+    mat.metalness   = S.darkMode ? 0.15 : 0.05;
     mat.needsUpdate = true;
   });
 }
@@ -600,6 +619,27 @@ map.on('load', () => {
     const mobile = isMobile();
     map.easeTo({ center: [S.lon, S.lat], zoom: mobile ? 17 : 18, pitch: mobile ? 45 : 58, bearing: -30, duration: 1600, easing: ease });
   }, 300);
+
+  // Override MapLibre base map colors to match 3D theme
+  if (S.darkMode) {
+    const darkOverrides = [
+      ['background',   'background-color', '#07091a'],
+      ['land',         'background-color', '#0d1020'],
+      ['water',        'fill-color',       '#0a1428'],
+      ['building',     'fill-color',       '#12172a'],
+      ['building',     'fill-outline-color', '#1a2040'],
+    ];
+    darkOverrides.forEach(([layer, prop, val]) => {
+      try { map.setPaintProperty(layer, prop, val); } catch {}
+    });
+  } else {
+    const lightOverrides = [
+      ['water', 'fill-color', '#c8ddf0'],
+    ];
+    lightOverrides.forEach(([layer, prop, val]) => {
+      try { map.setPaintProperty(layer, prop, val); } catch {}
+    });
+  }
 
   // Tunggu sync Supabase selesai (biasanya sudah selesai saat tiles load),
   // lalu baru tambahkan layer 3D dan bangun category bar

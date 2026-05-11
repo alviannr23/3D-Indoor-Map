@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import * as Utils from './utils.js';
 
 export class StoreManager {
-  constructor(scene, initialStoreColor = '#1500ff') {
+  constructor(scene, initialStoreColor = '#1500ff', darkMode = false) {
     this.scene        = scene;
-    this.storeMeshes  = {};  // storeKey → { logo, bases[] }
-    this.logos        = [];  // all interactable meshes (logos + bases)
+    this.storeMeshes  = {};
+    this.logos        = [];
     this._cachedColor = initialStoreColor;
+    this.darkMode     = darkMode;
   }
 
   /* ── STORE CONFIG ──────────────────────────────────────── */
@@ -55,7 +56,13 @@ export class StoreManager {
 
   /* ── LOGO MESH ─────────────────────────────────────────── */
   createLogoPlaneMesh(store, center, topY) {
-    const mat  = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, toneMapped: false });
+    const mat  = new THREE.MeshBasicMaterial({
+      transparent: true,
+      side:        THREE.DoubleSide,
+      toneMapped:  false,
+      blending:    this.darkMode ? THREE.AdditiveBlending : THREE.NormalBlending,
+      depthWrite:  !this.darkMode,
+    });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.userData.type   = 'logo';
     mesh.userData.origin = { x: center.x, z: center.z };
