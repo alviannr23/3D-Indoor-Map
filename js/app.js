@@ -508,45 +508,52 @@ function setupMaterials(root) {
   });
 }
 
-/* ── FAKE DROP SHADOW (shape-accurate) ───────────────────── */
+/* ── FAKE DROP SHADOW (shape-accurate + soft blur) ───────── */
+let _shadowTex = null;
+function _getShadowTex() {
+  if (_shadowTex) return _shadowTex;
+  const N   = 128;
+  const cv  = document.createElement('canvas');
+  cv.width  = cv.height = N;
+  const ctx = cv.getContext('2d');
+  // Draw a blurred rectangle in centre → gives box-shaped soft shadow
+  ctx.clearRect(0, 0, N, N);
+  ctx.shadowColor  = 'black';
+  ctx.shadowBlur   = N * 0.32;
+  ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
+  ctx.fillStyle    = 'black';
+  ctx.fillRect(N * 0.28, N * 0.28, N * 0.44, N * 0.44);
+  _shadowTex = new THREE.CanvasTexture(cv);
+  return _shadowTex;
+}
+
 function _addShadowsForFloor(root, parent) {
+  const tex = _getShadowTex();
+
   root.traverse((child) => {
     if (!child.isMesh) return;
     const t = child.userData.type;
     if (t === 'floor' || t === 'logo' || t === 'store-shadow') return;
 
+    child.updateWorldMatrix(true, false);
     const box = new THREE.Box3().setFromObject(child);
     if ((box.max.y - box.min.y) < 1e-4) return; // skip flat / non-extruded
 
-    const geo = child.geometry.clone();
-    child.updateWorldMatrix(true, false);
-    geo.applyMatrix4(child.matrixWorld);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const w = (box.max.x - box.min.x) * 1.5; // 50% wider for soft shadow spread
+    const d = (box.max.z - box.min.z) * 1.5;
 
-    // Compute centroid of all vertices (XZ plane)
-    const pos = geo.attributes.position;
-    let cx = 0, cz = 0;
-    for (let i = 0; i < pos.count; i++) { cx += pos.getX(i); cz += pos.getZ(i); }
-    cx /= pos.count; cz /= pos.count;
-
-    // Flatten to just above floor, expand 15% outward from centroid
-    const floorY = box.min.y + 0.001;
-    for (let i = 0; i < pos.count; i++) {
-      pos.setXYZ(i,
-        cx + (pos.getX(i) - cx) * 1.15,
-        floorY,
-        cz + (pos.getZ(i) - cz) * 1.15,
-      );
-    }
-    pos.needsUpdate = true;
-
+    const geo = new THREE.PlaneGeometry(w, d);
     const mat = new THREE.MeshBasicMaterial({
-      color:       0x000000,
+      map:         tex,
       transparent: true,
       opacity:     C().shadowOpacity,
       depthWrite:  false,
-      side:        THREE.DoubleSide,
     });
-    const shadow = new THREE.Mesh(geo, mat);
+    const shadow    = new THREE.Mesh(geo, mat);
+    shadow.rotation.x    = -Math.PI / 2;
+    shadow.position.set(center.x, box.min.y + 0.001, center.z);
     shadow.userData.type = 'store-shadow';
     shadow.renderOrder   = 1;
     parent.add(shadow);
@@ -1545,28 +1552,38 @@ function _tryPaint(layer, prop, val) {
 }
 
 function _applyMaplibreTheme() {
-  const bc = C().buildingColor;
   if (S.darkMode) {
-    _tryPaint('background',           'background-color',        '#07091a');
-    _tryPaint('land',                 'background-color',        '#0d1020');
-    _tryPaint('water',                'fill-color',              '#0a1428');
+    _tryPaint('background', 'background-color', '#07091a');
+    _tryPaint('land',       'background-color', '#0d1020');
+    _tryPaint('water',      'fill-color',       '#0a1428');
   } else {
-    _tryPaint('water',                'fill-color',              '#c8ddf0');
+    _tryPaint('water', 'fill-color', '#c8ddf0');
   }
-  // Building layers — try all common Carto layer names
-  ['building', 'building_fill', 'building-fill'].forEach(id => {
-    _tryPaint(id, 'fill-color',         bc);
-    _tryPaint(id, 'fill-outline-color', S.darkMode ? '#1a2040' : '#c8c0b4');
-  });
-  ['building-extrusion', 'building_extrusion', '3d-buildings'].forEach(id => {
-    _tryPaint(id, 'fill-extrusion-color', bc);
-  });
+  _applyBuildingColorToStyle();
+}
+
+function _applyBuildingColorToStyle() {
+  const bc  = C().buildingColor;
+  const oc  = S.darkMode ? '#1a2040' : '#b0a898';
+  try {
+    (map.getStyle()?.layers || []).forEach(layer => {
+      const id = layer.id.toLowerCase();
+      if (!id.includes('building') && !id.includes('construct')) return;
+      if (layer.type === 'fill-extrusion') {
+        _tryPaint(layer.id, 'fill-extrusion-color',   bc);
+        _tryPaint(layer.id, 'fill-extrusion-opacity',  0.9);
+      } else if (layer.type === 'fill') {
+        _tryPaint(layer.id, 'fill-color',         bc);
+        _tryPaint(layer.id, 'fill-outline-color', oc);
+      }
+    });
+  } catch {}
 }
 
 window.applyBuildingColor = () => {
   C().buildingColor = document.getElementById('inp-building-color').value;
   persist();
-  _applyMaplibreTheme();
+  _applyBuildingColorToStyle();
 };
 
 /* ── SLIDER BINDINGS ─────────────────────────────────────── */
