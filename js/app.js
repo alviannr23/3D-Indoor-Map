@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff' },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff' },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2 },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1 },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -240,6 +240,8 @@ map.on('error', (e) => {
 /* ══════════════════════════════════════════════════════════
    CUSTOM THREE.JS LAYER
    ══════════════════════════════════════════════════════════ */
+let _ambientRef = null, _sunRef = null;
+
 const modelLayer = {
   id:            '3d-model',
   type:          'custom',
@@ -253,19 +255,19 @@ const modelLayer = {
       this.scene  = new THREE.Scene();
 
       if (S.darkMode) {
-        this.scene.add(new THREE.AmbientLight(0x9baac8, 0.65));
-        const hemi = new THREE.HemisphereLight(0xb4c4e0, 0x0d1225, 0.5);
-        this.scene.add(hemi);
-        const sun = new THREE.DirectionalLight(0xc8d4f0, 1.1);
-        sun.position.set(100, 200, 100);
-        this.scene.add(sun);
+        _ambientRef = new THREE.AmbientLight(0x9baac8, C().ambientInt);
+        this.scene.add(_ambientRef);
+        this.scene.add(new THREE.HemisphereLight(0xb4c4e0, 0x0d1225, 0.5));
+        _sunRef = new THREE.DirectionalLight(0xc8d4f0, C().sunInt);
+        _sunRef.position.set(100, 200, 100);
+        this.scene.add(_sunRef);
       } else {
-        this.scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-        const hemi = new THREE.HemisphereLight(0xfff8f0, 0x7a7060, 0.7);
-        this.scene.add(hemi);
-        const sun = new THREE.DirectionalLight(0xfff0d8, 1.2);
-        sun.position.set(100, 200, 80);
-        this.scene.add(sun);
+        _ambientRef = new THREE.AmbientLight(0xffffff, C().ambientInt);
+        this.scene.add(_ambientRef);
+        this.scene.add(new THREE.HemisphereLight(0xfff8f0, 0x7a7060, 0.7));
+        _sunRef = new THREE.DirectionalLight(0xfff0d8, C().sunInt);
+        _sunRef.position.set(100, 200, 80);
+        this.scene.add(_sunRef);
       }
 
       storeManager = new StoreManager(this.scene, C().storeColor, S.darkMode);
@@ -462,8 +464,8 @@ function _applyMatColor(child, color) {
     if (m.map)          m.map          = null;
     if (m.vertexColors) m.vertexColors = false;
     m.color.set(color);
-    m.roughness   = S.darkMode ? 0.5 : 0.7;
-    m.metalness   = S.darkMode ? 0.15 : 0.05;
+    m.roughness   = C().roughness;
+    m.metalness   = C().metalness;
     m.needsUpdate = true;
   });
 }
@@ -1231,6 +1233,10 @@ window.openPanel = (type) => {
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
     document.getElementById('inp-admin-wa').value      = S.adminWa || '';
+    syncSD('roughness',   C().roughness   ?? 0.7);
+    syncSD('metalness',   C().metalness   ?? 0.05);
+    syncSD('ambient-int', C().ambientInt  ?? 1.1);
+    syncSD('sun-int',     C().sunInt      ?? 1.2);
   }
   if (type === 'categories') {
     _buildCategoryAdminUI();
@@ -1475,6 +1481,27 @@ window.applyMapColors = () => {
   storeManager?.updateBaseColors(C().storeColor);
   map.triggerRepaint();
 };
+
+/* ── 3D STYLE (roughness / metalness / lighting) ─────────── */
+function _applyStyleValues() {
+  if (modelLayer.scene) {
+    modelLayer.scene.traverse((child) => {
+      if (!child.isMesh) return;
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => {
+        if (!m || m.isMeshBasicMaterial) return;
+        m.roughness   = C().roughness;
+        m.metalness   = C().metalness;
+        m.needsUpdate = true;
+      });
+    });
+  }
+  if (_ambientRef) _ambientRef.intensity = C().ambientInt;
+  if (_sunRef)     _sunRef.intensity     = C().sunInt;
+  map.triggerRepaint();
+}
+
+window.applyMapStyle = () => { persist(); _applyStyleValues(); };
 
 /* ── SLIDER BINDINGS ─────────────────────────────────────── */
 // (per-floor sliders are built dynamically in _buildFloorUI)
@@ -1961,3 +1988,9 @@ document.addEventListener('keydown', (e) => {
 /* ── init panel theme toggle ─────────────────────────────── */
 document.getElementById('toggle-dark').checked = S.darkMode;
 setThemeLabels(S.darkMode);
+
+/* ── Style sliders: live preview ─────────────────────────── */
+bindSD('roughness',   v => { C().roughness  = v; _applyStyleValues(); });
+bindSD('metalness',   v => { C().metalness  = v; _applyStyleValues(); });
+bindSD('ambient-int', v => { C().ambientInt = v; _applyStyleValues(); });
+bindSD('sun-int',     v => { C().sunInt     = v; _applyStyleValues(); });

@@ -181,6 +181,48 @@
           </div>
         </div>
 
+        <div class="sect-divider"></div>
+
+        <p class="section-label">Material &amp; Pencahayaan 3D</p>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Roughness</span>
+            <input type="number" id="inp-roughness" class="num-inp" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+          <input type="range" id="sld-roughness" class="range-slider" min="0" max="1" step="0.05" value="0.5" />
+          <span class="axis-hint">0 = licin/mengkilap · 1 = kasar/matte</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Metalness</span>
+            <input type="number" id="inp-metalness" class="num-inp" min="0" max="1" step="0.05" value="0.15" />
+          </div>
+          <input type="range" id="sld-metalness" class="range-slider" min="0" max="1" step="0.05" value="0.15" />
+          <span class="axis-hint">0 = non-logam · 1 = metalik</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Cahaya Ambient</span>
+            <input type="number" id="inp-ambient-int" class="num-inp" min="0" max="3" step="0.05" value="0.65" />
+          </div>
+          <input type="range" id="sld-ambient-int" class="range-slider" min="0" max="3" step="0.05" value="0.65" />
+          <span class="axis-hint">Terang dasar keseluruhan scene</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-name">Cahaya Matahari</span>
+            <input type="number" id="inp-sun-int" class="num-inp" min="0" max="3" step="0.05" value="1.1" />
+          </div>
+          <input type="range" id="sld-sun-int" class="range-slider" min="0" max="3" step="0.05" value="1.1" />
+          <span class="axis-hint">Directional light dari atas — buat kontras sisi toko</span>
+        </div>
+
+        <button class="btn-apply" onclick="applyMapStyle()">Simpan Style</button>
+
       </div><!-- /section-map -->
 
       <!-- ══ SECTION: NAV ══════════════════════════════════ -->
