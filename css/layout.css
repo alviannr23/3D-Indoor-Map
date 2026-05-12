@@ -129,19 +129,14 @@ body.is-tenant .tenant-login-btn { display: none; }
 }
 .tb-logout:hover { background: rgba(20,184,166,0.18); }
 
-/* ── Map visibility toggle button ───────────────────────────── */
+/* ── Map visibility toggle (inside MapLibre ctrl-group) ─────── */
 #map-visibility-btn {
-  position: fixed; bottom: 120px; right: 20px; z-index: 1000;
-  width: 29px; height: 29px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(15,23,42,0.88); backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px; cursor: pointer;
   color: rgba(255,255,255,0.55);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: color 0.15s;
+  display: flex !important; align-items: center; justify-content: center;
 }
-#map-visibility-btn:hover { background: rgba(99,102,241,0.2); color: #6366f1; border-color: rgba(99,102,241,0.4); }
-#map-visibility-btn.map-hidden { color: rgba(255,255,255,0.25); }
+#map-visibility-btn:hover { color: #6366f1 !important; }
+#map-visibility-btn.map-hidden { color: rgba(255,255,255,0.2); }
 
 /* ── Tenant focus button (bottom-right, above fullscreen) ─── */
 .tenant-focus-btn {
@@ -197,6 +192,7 @@ body.is-tenant .tenant-focus-btn { display: flex; }
 
 /* ── MapLibre UI overrides ──────────────────────────────────── */
 .maplibregl-ctrl-bottom-right { bottom: 12px; right: 20px; }
+.maplibregl-ctrl-attrib { display: block !important; }
 .maplibregl-ctrl-attrib:not(.maplibregl-compact-show) .maplibregl-ctrl-attrib-inner { display: none !important; }
 .maplibregl-ctrl-attrib-button { display: block !important; }
 .maplibregl-ctrl-group {

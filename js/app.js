@@ -225,6 +225,22 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 map.addControl(new maplibregl.FullscreenControl({ container: document.body }), 'bottom-right');
+map.addControl({
+  onAdd() {
+    const div = document.createElement('div');
+    div.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    div.innerHTML = `<button id="map-visibility-btn" title="Tampilkan/Sembunyikan Peta">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+        <line x1="8" y1="2" x2="8" y2="18"/>
+        <line x1="16" y1="6" x2="16" y2="22"/>
+      </svg>
+    </button>`;
+    div.querySelector('button').onclick = () => window.toggleMapVisibility?.();
+    return div;
+  },
+  onRemove() {},
+}, 'bottom-right');
 setLoadingText('Memuat peta...');
 
 // Timeout: jika peta tidak muat dalam 20 detik, tampilkan opsi reload
@@ -1273,10 +1289,10 @@ let _mapBaseVisible = true;
 window.toggleMapVisibility = () => {
   _mapBaseVisible = !_mapBaseVisible;
   document.getElementById('map-visibility-btn')?.classList.toggle('map-hidden', !_mapBaseVisible);
-  const layers = map.getStyle()?.layers || [];
-  layers.forEach(layer => {
+  const vis = _mapBaseVisible ? 'visible' : 'none';
+  (map.getStyle()?.layers || []).forEach(layer => {
     if (layer.id === modelLayer.id) return;
-    try { map.setLayoutProperty(layer.id, 'visibility', _mapBaseVisible ? 'visible' : 'none'); } catch {}
+    try { map.setLayoutProperty(layer.id, 'visibility', vis); } catch {}
   });
 };
 
