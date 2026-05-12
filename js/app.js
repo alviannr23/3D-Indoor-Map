@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0', logoGlow: false, logoGlowOpacity: 0.8 },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040', logoGlow: true,  logoGlowOpacity: 1.0 },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, otherEmissive: 0.0, landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0', logoGlow: false, logoGlowOpacity: 0.8 },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, otherEmissive: 0.25, landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040', logoGlow: true,  logoGlowOpacity: 1.0 },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -500,6 +500,10 @@ function setupMaterials(root) {
     } else {
       mat.color.set(C().defaultColor);
       if (mat.map) mat.map = null;
+      if (mat.emissive) {
+        mat.emissive.set(C().defaultColor);
+        mat.emissive.multiplyScalar(C().otherEmissive ?? 0);
+      }
     }
     mat.roughness   = S.darkMode ? 0.5 : 0.7;
     mat.metalness   = S.darkMode ? 0.15 : 0.05;
@@ -1233,10 +1237,11 @@ window.openPanel = (type) => {
     document.getElementById('inp-floor-color').value   = C().floorColor;
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
-    syncSD('roughness',   C().roughness    ?? 0.7);
-    syncSD('metalness',   C().metalness   ?? 0.05);
-    syncSD('ambient-int', C().ambientInt  ?? 1.1);
-    syncSD('sun-int',     C().sunInt      ?? 1.2);
+    syncSD('roughness',     C().roughness     ?? 0.7);
+    syncSD('metalness',     C().metalness    ?? 0.05);
+    syncSD('ambient-int',   C().ambientInt   ?? 1.1);
+    syncSD('sun-int',       C().sunInt       ?? 1.2);
+    syncSD('other-emissive', C().otherEmissive ?? 0);
     const _logoGlowToggle = document.getElementById('toggle-logo-glow');
     if (_logoGlowToggle) _logoGlowToggle.checked = C().logoGlow ?? S.darkMode;
     syncSD('logo-glow-op', C().logoGlowOpacity ?? 1.0);
@@ -1492,9 +1497,24 @@ window.applyMapColors = () => {
     });
   }
 
+  _applyOtherEmissive();
   storeManager?.updateBaseColors(C().storeColor);
   map.triggerRepaint();
 };
+
+/* ── OTHER OBJECT EMISSIVE ───────────────────────────────── */
+function _applyOtherEmissive() {
+  if (!modelLayer.scene) return;
+  const intensity = C().otherEmissive ?? 0;
+  modelLayer.scene.traverse((child) => {
+    if (!child.isMesh || child.userData.type !== 'other') return;
+    const mat = child.material;
+    if (!mat?.emissive) return;
+    mat.emissive.set(C().defaultColor);
+    mat.emissive.multiplyScalar(intensity);
+    mat.needsUpdate = true;
+  });
+}
 
 /* ── 3D STYLE (roughness / metalness / lighting) ─────────── */
 function _applyStyleValues() {
@@ -1518,6 +1538,13 @@ function _applyStyleValues() {
 }
 
 window.applyMapStyle = () => { persist(); _applyStyleValues(); };
+
+window.applyOtherEmissive = () => {
+  C().otherEmissive = parseFloat(document.getElementById('inp-other-emissive')?.value ?? 0);
+  persist();
+  _applyOtherEmissive();
+  map.triggerRepaint();
+};
 
 window.applyLogoGlow = () => {
   C().logoGlow        = document.getElementById('toggle-logo-glow')?.checked ?? false;
@@ -2104,4 +2131,5 @@ bindSD('roughness',   v => { C().roughness     = v; _applyStyleValues(); });
 bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
-bindSD('logo-glow-op', v => { C().logoGlowOpacity = v; storeManager?.updateLogoGlow(C().logoGlow ?? S.darkMode, v); });
+bindSD('logo-glow-op',   v => { C().logoGlowOpacity = v; storeManager?.updateLogoGlow(C().logoGlow ?? S.darkMode, v); });
+bindSD('other-emissive', v => { C().otherEmissive = v; _applyOtherEmissive(); map.triggerRepaint(); });

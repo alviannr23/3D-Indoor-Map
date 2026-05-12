@@ -207,6 +207,15 @@
 
           <div class="slider-group">
             <div class="slider-header">
+              <span class="slider-name">Cahaya Eskalator &amp; Objek Lain</span>
+              <input type="number" id="inp-other-emissive" class="num-inp" min="0" max="1" step="0.05" value="0" />
+            </div>
+            <input type="range" id="sld-other-emissive" class="range-slider" min="0" max="1" step="0.05" value="0" />
+            <span class="axis-hint">Emissive khusus untuk eskalator, tangga, dan objek lainnya</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
               <span class="slider-name">Glow Logo</span>
               <label class="toggle-switch" style="width:34px;height:19px;flex-shrink:0">
                 <input type="checkbox" id="toggle-logo-glow" onchange="applyLogoGlow()" />
