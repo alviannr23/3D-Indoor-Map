@@ -205,6 +205,26 @@
             <span class="axis-hint">Directional light dari atas</span>
           </div>
 
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Glow Logo</span>
+              <label class="toggle-switch" style="width:34px;height:19px;flex-shrink:0">
+                <input type="checkbox" id="toggle-logo-glow" onchange="applyLogoGlow()" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <span class="axis-hint">Efek cahaya pada logo toko (AdditiveBlending)</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Intensitas Glow</span>
+              <input type="number" id="inp-logo-glow-op" class="num-inp" min="0" max="1" step="0.05" value="1" />
+            </div>
+            <input type="range" id="sld-logo-glow-op" class="range-slider" min="0" max="1" step="0.05" value="1" />
+            <span class="axis-hint">Opacity logo saat glow aktif</span>
+          </div>
+
           <button class="btn-apply" onclick="applyMapStyle()">Simpan Style 3D</button>
         </div><!-- /tab-3d -->
 

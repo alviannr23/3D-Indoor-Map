@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import * as Utils from './utils.js';
 
 export class StoreManager {
-  constructor(scene, initialStoreColor = '#1500ff', darkMode = false) {
-    this.scene        = scene;
-    this.storeMeshes  = {};
-    this.logos        = [];
-    this._cachedColor = initialStoreColor;
-    this.darkMode     = darkMode;
+  constructor(scene, initialStoreColor = '#1500ff', logoGlow = true, logoGlowOpacity = 1.0) {
+    this.scene           = scene;
+    this.storeMeshes     = {};
+    this.logos           = [];
+    this._cachedColor    = initialStoreColor;
+    this.logoGlow        = logoGlow;
+    this.logoGlowOpacity = logoGlowOpacity;
   }
 
   /* ── STORE CONFIG ──────────────────────────────────────── */
@@ -60,8 +61,9 @@ export class StoreManager {
       transparent: true,
       side:        THREE.DoubleSide,
       toneMapped:  false,
-      blending:    this.darkMode ? THREE.AdditiveBlending : THREE.NormalBlending,
-      depthWrite:  !this.darkMode,
+      blending:    this.logoGlow ? THREE.AdditiveBlending : THREE.NormalBlending,
+      depthWrite:  !this.logoGlow,
+      opacity:     this.logoGlow ? this.logoGlowOpacity : 1.0,
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
     mesh.userData.type   = 'logo';
@@ -329,6 +331,20 @@ export class StoreManager {
       mesh.position.z = o.z + (base.offset?.z || 0);
       mesh.scale.set(base.scale?.x || 1, base.scale?.z || 1, 1);
       mesh.material.color.set(original.baseColor || this._cachedColor);
+      mesh.material.needsUpdate = true;
+    });
+  }
+
+  /* ── UPDATE LOGO GLOW ─────────────────────────────────── */
+  updateLogoGlow(glow, opacity) {
+    this.logoGlow        = glow;
+    this.logoGlowOpacity = opacity;
+    Object.values(this.storeMeshes).forEach(data => {
+      const mesh = data.logo;
+      if (!mesh) return;
+      mesh.material.blending   = glow ? THREE.AdditiveBlending : THREE.NormalBlending;
+      mesh.material.depthWrite = !glow;
+      mesh.material.opacity    = glow ? opacity : 1.0;
       mesh.material.needsUpdate = true;
     });
   }
