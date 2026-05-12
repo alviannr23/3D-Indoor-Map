@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, mapBgColor: '#e8e0d8', landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0', logoGlow: false, logoGlowOpacity: 0.8 },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, mapBgColor: '#0d1020', landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040', logoGlow: true,  logoGlowOpacity: 1.0 },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, mapBgColor: '#e8e0d8', logoSaturation: 1.0, logoGlow: false, logoGlowOpacity: 0.8, landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0' },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, mapBgColor: '#0d1020', logoSaturation: 1.0, logoGlow: true,  logoGlowOpacity: 1.0, landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040' },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -286,7 +286,7 @@ const modelLayer = {
         this.scene.add(_sunRef);
       }
 
-      storeManager = new StoreManager(this.scene, C().storeColor, C().logoGlow ?? S.darkMode, C().logoGlowOpacity ?? 1.0);
+      storeManager = new StoreManager(this.scene, C().storeColor, C().logoGlow ?? S.darkMode, C().logoGlowOpacity ?? 1.0, C().logoSaturation ?? 1.0);
       Popup.init(storeManager);
       loadFloors(this.scene);
 
@@ -1260,6 +1260,7 @@ window.openPanel = (type) => {
     syncSD('sun-int',     C().sunInt      ?? 1.2);
     const _logoGlowToggle = document.getElementById('toggle-logo-glow');
     if (_logoGlowToggle) _logoGlowToggle.checked = C().logoGlow ?? S.darkMode;
+    syncSD('logo-saturation', C().logoSaturation ?? 1.0);
     syncSD('logo-glow-op', C().logoGlowOpacity ?? 1.0);
     const _setColor = (id, key, def) => {
       const el = document.getElementById(id);
@@ -1559,6 +1560,12 @@ function _applyStyleValues() {
 }
 
 window.applyMapStyle = () => { persist(); _applyStyleValues(); };
+
+window.applyLogoSaturation = () => {
+  C().logoSaturation = parseFloat(document.getElementById('inp-logo-saturation')?.value ?? 1.0);
+  persist();
+  storeManager?.updateAllLogoSaturation(C().logoSaturation);
+};
 
 window.applyLogoGlow = () => {
   C().logoGlow        = document.getElementById('toggle-logo-glow')?.checked ?? false;
@@ -2145,4 +2152,5 @@ bindSD('roughness',   v => { C().roughness     = v; _applyStyleValues(); });
 bindSD('metalness',   v => { C().metalness     = v; _applyStyleValues(); });
 bindSD('ambient-int', v => { C().ambientInt    = v; _applyStyleValues(); });
 bindSD('sun-int',     v => { C().sunInt        = v; _applyStyleValues(); });
+bindSD('logo-saturation', v => { C().logoSaturation = v; storeManager?.updateAllLogoSaturation(v); });
 bindSD('logo-glow-op', v => { C().logoGlowOpacity = v; storeManager?.updateLogoGlow(C().logoGlow ?? S.darkMode, v); });

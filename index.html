@@ -207,6 +207,15 @@
 
           <div class="slider-group">
             <div class="slider-header">
+              <span class="slider-name">Saturasi Warna Logo</span>
+              <input type="number" id="inp-logo-saturation" class="num-inp" min="0.2" max="3" step="0.05" value="1" />
+            </div>
+            <input type="range" id="sld-logo-saturation" class="range-slider" min="0.2" max="3" step="0.05" value="1" />
+            <span class="axis-hint">Kejernihan/kejenuhan warna logo semua toko</span>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
               <span class="slider-name">Glow Logo</span>
               <label class="toggle-switch" style="width:34px;height:19px;flex-shrink:0">
                 <input type="checkbox" id="toggle-logo-glow" onchange="applyLogoGlow()" />
@@ -570,13 +579,6 @@
           <div class="sp-field-row admin-edit-only">
             <div class="sp-field"><label>Offset X</label><input type="number" id="offsetX" step="0.1" /></div>
             <div class="sp-field"><label>Offset Z</label><input type="number" id="offsetZ" step="0.1" /></div>
-          </div>
-          <div class="sp-field-full admin-edit-only" style="margin-top:8px">
-            <label style="display:flex;justify-content:space-between">
-              <span>Saturasi Warna</span>
-              <span id="logoSaturation-val" style="color:#94a3b8">1.00×</span>
-            </label>
-            <input type="range" id="logoSaturation" min="0.2" max="3" step="0.05" value="1" style="width:100%;margin-top:4px" />
           </div>
 
           <!-- Delete button — at the very bottom of info panel -->

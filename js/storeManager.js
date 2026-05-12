@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import * as Utils from './utils.js';
 
 export class StoreManager {
-  constructor(scene, initialStoreColor = '#1500ff', logoGlow = true, logoGlowOpacity = 1.0) {
-    this.scene           = scene;
-    this.storeMeshes     = {};
-    this.logos           = [];
-    this._cachedColor    = initialStoreColor;
-    this.logoGlow        = logoGlow;
-    this.logoGlowOpacity = logoGlowOpacity;
+  constructor(scene, initialStoreColor = '#1500ff', logoGlow = true, logoGlowOpacity = 1.0, logoSaturation = 1.0) {
+    this.scene            = scene;
+    this.storeMeshes      = {};
+    this.logos            = [];
+    this._cachedColor     = initialStoreColor;
+    this.logoGlow         = logoGlow;
+    this.logoGlowOpacity  = logoGlowOpacity;
+    this.logoSaturation   = logoSaturation;
   }
 
   /* ── STORE CONFIG ──────────────────────────────────────── */
@@ -89,7 +90,7 @@ export class StoreManager {
       mat.needsUpdate = true;
       Utils.applyLogoScale(mesh, store.logoScale || 0.8);
     };
-    const sat = store.logoSaturation ?? 1;
+    const sat = this.logoSaturation ?? 1;
     if (sat !== 1) {
       Utils.applyCanvasSaturation(logoSrc, sat, _onTex);
     } else {
@@ -203,7 +204,6 @@ export class StoreManager {
     store.logoScale    = fd.logoScale;
     store.logoRotation = fd.logoRotation;
     if (fd.newLogo) store.logo = fd.newLogo;
-    if (fd.logoSaturation !== undefined) store.logoSaturation = fd.logoSaturation;
     if ('baseColor' in fd) {
       store.baseColor = fd.baseColor || null;
       // Apply color immediately to existing meshes
@@ -344,18 +344,20 @@ export class StoreManager {
     });
   }
 
-  /* ── LOGO SATURATION ──────────────────────────────────── */
-  applyLogoSaturation(storeKey, saturation) {
-    const data  = this.storeMeshes[storeKey];
-    const store = Utils.findStore(storeKey);
-    if (!data?.logo || !store) return;
-    const src  = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
-    const mesh = data.logo;
-    Utils.applyCanvasSaturation(src, saturation, (tex) => {
-      mesh.userData.aspect = (tex.image?.width || 1) / (tex.image?.height || 1);
-      mesh.material.map = tex;
-      mesh.material.needsUpdate = true;
-      Utils.applyLogoScale(mesh, store.logoScale || 0.8);
+  /* ── LOGO SATURATION (global) ─────────────────────────── */
+  updateAllLogoSaturation(saturation) {
+    this.logoSaturation = saturation;
+    Object.entries(this.storeMeshes).forEach(([key, data]) => {
+      const store = Utils.findStore(key);
+      if (!data?.logo || !store) return;
+      const src  = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
+      const mesh = data.logo;
+      Utils.applyCanvasSaturation(src, saturation, (tex) => {
+        mesh.userData.aspect = (tex.image?.width || 1) / (tex.image?.height || 1);
+        mesh.material.map = tex;
+        mesh.material.needsUpdate = true;
+        Utils.applyLogoScale(mesh, store.logoScale || 0.8);
+      });
     });
   }
 
