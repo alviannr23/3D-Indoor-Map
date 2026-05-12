@@ -1268,6 +1268,18 @@ window.closeSettings = () => {
   document.getElementById('settings-modal').classList.add('hidden');
 };
 
+/* ── MAP BASE VISIBILITY TOGGLE ──────────────────────────── */
+let _mapBaseVisible = true;
+window.toggleMapVisibility = () => {
+  _mapBaseVisible = !_mapBaseVisible;
+  document.getElementById('map-visibility-btn')?.classList.toggle('map-hidden', !_mapBaseVisible);
+  const layers = map.getStyle()?.layers || [];
+  layers.forEach(layer => {
+    if (layer.id === modelLayer.id) return;
+    try { map.setLayoutProperty(layer.id, 'visibility', _mapBaseVisible ? 'visible' : 'none'); } catch {}
+  });
+};
+
 /* ══════════════════════════════════════════════════════════
    AUTH / ADMIN
    ══════════════════════════════════════════════════════════ */
