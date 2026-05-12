@@ -32,8 +32,8 @@ const DEFAULTS = {
     { ..._FLOOR_DEFAULTS, path: 'mall2.glb', label: 'Lantai 2', altitudeM: 5 },
   ],
   darkMode: true,
-  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0', logoGlow: false, logoGlowOpacity: 0.8 },
-  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040', logoGlow: true,  logoGlowOpacity: 1.0 },
+  light: { floorColor: '#c4bdb0', defaultColor: '#ece7de', storeColor: '#1500ff', roughness: 0.7, metalness: 0.05, ambientInt: 1.1, sunInt: 1.2, mapBgColor: '#e8e0d8', landColor: '#f5f0e8', waterColor: '#c8ddf0', roadColor: '#eae5da', roadCaseColor: '#d5cfc4', parkColor: '#d4e8c8', buildingColor: '#ddd8d0', buildingOutlineColor: '#c8bfb0', logoGlow: false, logoGlowOpacity: 0.8 },
+  dark:  { floorColor: '#3b4156', defaultColor: '#4c5370', storeColor: '#1500ff', roughness: 0.5, metalness: 0.15, ambientInt: 0.65, sunInt: 1.1, mapBgColor: '#0d1020', landColor: '#0d1020', waterColor: '#0a1428', roadColor: '#1c2235', roadCaseColor: '#111828', parkColor: '#0c1a12', buildingColor: '#12172a', buildingOutlineColor: '#1a2040', logoGlow: true,  logoGlowOpacity: 1.0 },
   categoryFilters: [],
   adminWa: '',  // WhatsApp number for rental contact (e.g. "628123456789")
 };
@@ -611,7 +611,6 @@ map.on('movestart', (e) => {
 
 map.on('load', () => {
   clearTimeout(_mapLoadTimeout);
-  hideLoading();
   _setModelBar('Memuat model 3D...');
 
   // Compass button: clone untuk hapus semua listener MapLibre (touch & click),
@@ -641,6 +640,12 @@ map.on('load', () => {
 
   // Override MapLibre base map colors to match 3D theme
   _applyMaplibreTheme();
+
+  // Reveal map only after custom colors are fully rendered (no flash)
+  map.once('idle', () => {
+    document.getElementById('map').style.opacity = '1';
+    hideLoading();
+  });
 
   // Tunggu sync Supabase selesai (biasanya sudah selesai saat tiles load),
   // lalu baru tambahkan layer 3D dan bangun category bar
@@ -1260,6 +1265,7 @@ window.openPanel = (type) => {
       const el = document.getElementById(id);
       if (el) el.value = C()[key] ?? def;
     };
+    _setColor('inp-map-bg-color',           'mapBgColor',           S.darkMode ? '#0d1020' : '#e8e0d8');
     _setColor('inp-land-color',             'landColor',            S.darkMode ? '#0d1020' : '#f5f0e8');
     _setColor('inp-water-color',            'waterColor',           S.darkMode ? '#0a1428' : '#c8ddf0');
     _setColor('inp-road-color',             'roadColor',            S.darkMode ? '#1c2235' : '#eae5da');
@@ -1294,6 +1300,13 @@ window.toggleMapVisibility = () => {
     if (layer.id === modelLayer.id) return;
     try { map.setLayoutProperty(layer.id, 'visibility', vis); } catch {}
   });
+  document.getElementById('map').style.background = _mapBaseVisible ? '' : (C().mapBgColor || '#0d1020');
+};
+
+window.applyMapBgColor = () => {
+  const color = document.getElementById('inp-map-bg-color')?.value;
+  if (color) { C().mapBgColor = color; persist(); }
+  if (!_mapBaseVisible) document.getElementById('map').style.background = color || '';
 };
 
 /* ══════════════════════════════════════════════════════════

@@ -36,7 +36,7 @@ body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
 }
-#map { width: 100%; height: 100%; }
+#map { width: 100%; height: 100%; opacity: 0; transition: opacity 0.4s ease; }
 
 /* ── Loading overlay ───────────────────────────────────────── */
 #loading {
