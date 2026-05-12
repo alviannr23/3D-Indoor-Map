@@ -72,6 +72,7 @@
         <button class="panel-btn admin-only" onclick="openPanel('map')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Pengaturan Map</button>
         <button class="panel-btn admin-only" id="panel-btn-nav" onclick="openPanel('nav')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><line x1="6.8" y1="11.1" x2="17.2" y2="6.2"/><line x1="6.8" y1="12.9" x2="17.2" y2="17.8"/></svg>Editor Navigasi</button>
         <button class="panel-btn admin-only" onclick="openPanel('categories')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Filter Kategori</button>
+        <button class="panel-btn admin-only" onclick="openPanel('contact')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.9a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.27 16z"/></svg>Kontak Admin</button>
       </div>
       <div class="panel-theme-row">
         <span class="pt-lbl" id="lbl-light">☀ Light</span>
@@ -133,7 +134,7 @@
     <!-- Tab bar — only visible when map panel is open -->
     <div class="modal-tabs hidden" id="modal-tab-bar">
       <button class="modal-tab active" data-tab="tab-3d"       onclick="switchModalTab('tab-3d')">3D Map</button>
-      <button class="modal-tab"        data-tab="tab-maplibre" onclick="switchModalTab('tab-maplibre')">Warna Peta</button>
+      <button class="modal-tab"        data-tab="tab-maplibre" onclick="switchModalTab('tab-maplibre')">Peta</button>
     </div>
 
     <div class="modal-body">
@@ -143,22 +144,6 @@
 
         <!-- ── TAB 1: 3D MAP ───────────────────────────── -->
         <div id="tab-3d" class="modal-tab-pane">
-          <p class="section-label">Koordinat Peta</p>
-          <div class="coord-row">
-            <div class="coord-field">
-              <label>Longitude</label>
-              <input type="number" id="inp-lon" step="0.0001" placeholder="112.7344" />
-            </div>
-            <div class="coord-field">
-              <label>Latitude</label>
-              <input type="number" id="inp-lat" step="0.0001" placeholder="-7.3092" />
-            </div>
-          </div>
-          <p class="field-hint">Posisi objek 3D di atas peta.</p>
-          <button class="btn-apply" onclick="applyCoordinates()">Terapkan &amp; Pindah ke Lokasi</button>
-
-          <div class="sect-divider"></div>
-
           <p class="section-label">Lantai <span class="axis-hint">— pilih lantai untuk diatur</span></p>
           <div id="floor-manager"></div>
 
@@ -221,20 +206,26 @@
           </div>
 
           <button class="btn-apply" onclick="applyMapStyle()">Simpan Style 3D</button>
+        </div><!-- /tab-3d -->
+
+        <!-- ── TAB 2: PETA (koordinat + warna MapLibre) ─── -->
+        <div id="tab-maplibre" class="modal-tab-pane hidden">
+          <p class="section-label">Koordinat Peta</p>
+          <div class="coord-row">
+            <div class="coord-field">
+              <label>Longitude</label>
+              <input type="number" id="inp-lon" step="0.0001" placeholder="112.7344" />
+            </div>
+            <div class="coord-field">
+              <label>Latitude</label>
+              <input type="number" id="inp-lat" step="0.0001" placeholder="-7.3092" />
+            </div>
+          </div>
+          <p class="field-hint">Posisi objek 3D di atas peta.</p>
+          <button class="btn-apply" onclick="applyCoordinates()">Terapkan &amp; Pindah ke Lokasi</button>
 
           <div class="sect-divider"></div>
 
-          <p class="section-label">Kontak Admin</p>
-          <div class="sp-field-full">
-            <label>Nomor WhatsApp Admin</label>
-            <input type="tel" id="inp-admin-wa" placeholder="628123456789 (tanpa +)" />
-            <p class="field-hint">Untuk tombol "Hubungi via WA" pada toko yang tersedia disewa.</p>
-          </div>
-          <button class="btn-apply" onclick="saveAdminContact()">Simpan Kontak</button>
-        </div><!-- /tab-3d -->
-
-        <!-- ── TAB 2: WARNA PETA (MapLibre) ─────────────── -->
-        <div id="tab-maplibre" class="modal-tab-pane hidden">
           <p class="section-label">Latar &amp; Alam</p>
           <div class="color-grid-4">
             <div class="color-item">
@@ -352,6 +343,17 @@
         <p class="section-label">Filter Kategori <span class="axis-hint">— tombol cepat di bawah pencarian</span></p>
         <p class="field-hint">Isi Kategori pada data toko agar cocok dengan label di sini.</p>
         <div id="cat-admin-list"></div>
+      </div>
+
+      <!-- ══ SECTION: CONTACT ═══════════════════════════════════ -->
+      <div id="section-contact" class="hidden">
+        <p class="section-label">WhatsApp Admin</p>
+        <div class="sp-field-full">
+          <label>Nomor WhatsApp</label>
+          <input type="tel" id="inp-admin-wa" placeholder="628123456789 (tanpa +)" />
+          <p class="field-hint">Digunakan untuk tombol "Hubungi via WA" pada toko/event yang tersedia disewa. Format: kode negara + nomor tanpa spasi.</p>
+        </div>
+        <button class="btn-apply" onclick="saveAdminContact()">Simpan Kontak</button>
       </div>
 
     </div><!-- /modal-body -->

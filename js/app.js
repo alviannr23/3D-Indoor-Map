@@ -1200,7 +1200,7 @@ function clearNavigation() {
 /* ══════════════════════════════════════════════════════════
    SETTINGS MODAL
    ══════════════════════════════════════════════════════════ */
-const _PANEL_TITLES = { map: 'Pengaturan Map', nav: 'Editor Navigasi', categories: 'Filter Kategori' };
+const _PANEL_TITLES = { map: 'Pengaturan Map', nav: 'Editor Navigasi', categories: 'Filter Kategori', contact: 'Kontak Admin' };
 
 window.switchModalTab = (tabId) => {
   document.querySelectorAll('.modal-tab-pane').forEach(p => p.classList.add('hidden'));
@@ -1210,7 +1210,7 @@ window.switchModalTab = (tabId) => {
 };
 
 window.openPanel = (type) => {
-  ['map', 'nav', 'categories'].forEach(t => {
+  ['map', 'nav', 'categories', 'contact'].forEach(t => {
     document.getElementById(`section-${t}`)?.classList.toggle('hidden', t !== type);
   });
   // Show tab bar only for map panel; reset to first tab
@@ -1223,6 +1223,9 @@ window.openPanel = (type) => {
   }
   document.getElementById('modal-title').textContent = _PANEL_TITLES[type] || '';
 
+  if (type === 'contact') {
+    document.getElementById('inp-admin-wa').value = S.adminWa || '';
+  }
   if (type === 'map') {
     document.getElementById('inp-lon').value = S.lon;
     document.getElementById('inp-lat').value = S.lat;
@@ -1230,7 +1233,6 @@ window.openPanel = (type) => {
     document.getElementById('inp-floor-color').value   = C().floorColor;
     document.getElementById('inp-default-color').value = C().defaultColor;
     document.getElementById('inp-store-color').value   = C().storeColor;
-    document.getElementById('inp-admin-wa').value      = S.adminWa || '';
     syncSD('roughness',   C().roughness    ?? 0.7);
     syncSD('metalness',   C().metalness   ?? 0.05);
     syncSD('ambient-int', C().ambientInt  ?? 1.1);
