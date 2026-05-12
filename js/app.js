@@ -1882,18 +1882,54 @@ function _hideModelBar() {
 }
 
 /* ── CATEGORY FILTER ─────────────────────────────────────── */
+const _CAT_ICONS = {
+  'Retail':  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`,
+  'Makanan': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>`,
+  'Minuman': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`,
+  'Toilet':  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
+  'Alat':    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,
+};
+const _CAT_ICON_DEFAULT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
+function _getCatIcon(label) { return _CAT_ICONS[label] || _CAT_ICON_DEFAULT; }
+
 function buildCategoryBar() {
   const bar = document.getElementById('category-bar');
   if (!bar) return;
-  const cats = S.categoryFilters || [];
+  const cats = (S.categoryFilters || []).filter(c => c.label && c.label.toLowerCase() !== 'lainnya');
   bar.innerHTML = cats.map(c => {
     const lbl = c.label.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    return `<button class="cat-chip" data-cat="${lbl}"
-      onclick="window.applyCategoryFilter('${lbl}')">
-      ${c.icon ? `<span>${c.icon}</span>` : ''}<span>${c.label}</span>
+    return `<button class="cat-chip" data-cat="${lbl}" onclick="window.applyCategoryFilter('${lbl}')">
+      ${_getCatIcon(c.label)}<span>${c.label}</span>
+    </button>`;
+  }).join('') + `<button class="cat-chip cat-chip--more" onclick="window.openCatPanel()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
+    <span>Lainnya</span>
+  </button>`;
+}
+
+window.openCatPanel = () => {
+  const cfg = Utils.getStoreConfig();
+  const allCats = [...new Set(cfg.filter(s => s.category).map(s => s.category))].sort();
+  const list = document.getElementById('cat-panel-list');
+  if (!list) return;
+  list.innerHTML = allCats.map(cat => {
+    const safe = cat.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    return `<button class="cat-panel-item" data-cat="${safe}"
+      onclick="window.applyCategoryFilter('${safe}'); window.closeCatPanel()">
+      ${_getCatIcon(cat)}<span>${cat}</span>
     </button>`;
   }).join('');
-}
+  document.querySelectorAll('.cat-panel-item').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === _catFilterLabel)
+  );
+  document.getElementById('cat-panel')?.classList.add('open');
+  document.getElementById('cat-panel-overlay')?.classList.add('active');
+};
+
+window.closeCatPanel = () => {
+  document.getElementById('cat-panel')?.classList.remove('open');
+  document.getElementById('cat-panel-overlay')?.classList.remove('active');
+};
 
 window.applyCategoryFilter = (label) => {
   if (_catFilterLabel === label) { clearCategoryFilter(); return; }
@@ -1955,7 +1991,7 @@ function clearCategoryFilter() {
   }
   _catFilterLabel   = null;
   _catHighlightKeys = null;
-  document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.cat-chip, .cat-panel-item').forEach(b => b.classList.remove('active'));
 }
 
 /* ── CATEGORY ADMIN UI ───────────────────────────────────── */

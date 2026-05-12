@@ -292,6 +292,55 @@ body.is-tenant .tenant-focus-btn { display: flex; }
 }
 .cat-chip:hover  { border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
 .cat-chip.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.55); color: #a5b4fc; }
+.cat-chip svg { flex-shrink: 0; }
+
+/* ── Category panel ─────────────────────────────────────────── */
+#cat-panel-overlay {
+  display: none; position: fixed; inset: 0; z-index: 199;
+}
+#cat-panel-overlay.active { display: block; }
+#cat-panel {
+  position: fixed; top: 76px; left: 20px; z-index: 200;
+  width: 264px; max-height: 380px;
+  background: rgba(13,20,38,0.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.09); border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+  overflow: hidden; display: flex; flex-direction: column;
+  transform: translateY(-6px) scale(0.97); opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#cat-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
+.cat-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 12px; font-weight: 700; color: #f1f5f9; flex-shrink: 0;
+}
+.cat-panel-close {
+  width: 22px; height: 22px; background: rgba(255,255,255,0.07);
+  border: none; border-radius: 6px; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cat-panel-close:hover { background: rgba(255,255,255,0.14); color: #f1f5f9; }
+#cat-panel-list {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 5px; padding: 10px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+#cat-panel-list::-webkit-scrollbar { width: 3px; }
+#cat-panel-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+.cat-panel-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 10px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03); color: #94a3b8;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; text-align: left; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.cat-panel-item svg { flex-shrink: 0; }
+.cat-panel-item:hover { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+.cat-panel-item.active { background: rgba(99,102,241,0.18); color: #a5b4fc; border-color: rgba(99,102,241,0.4); }
 
 /* ── Sidebar toggle button ──────────────────────────────────── */
 #sidebar-toggle-btn {
