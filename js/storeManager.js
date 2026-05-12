@@ -81,12 +81,20 @@ export class StoreManager {
     Utils.applyLogoScale(mesh, store.logoScale || 0.8);
 
     const logoSrc = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
-    mat.map = Utils.getTexture(logoSrc, (tex) => {
+    const _onTex = (tex) => {
       const w = tex.image?.width, h = tex.image?.height;
       if (!w || !h) return;
       mesh.userData.aspect = w / h;
+      mat.map = tex;
+      mat.needsUpdate = true;
       Utils.applyLogoScale(mesh, store.logoScale || 0.8);
-    });
+    };
+    const sat = store.logoSaturation ?? 1;
+    if (sat !== 1) {
+      Utils.applyCanvasSaturation(logoSrc, sat, _onTex);
+    } else {
+      mat.map = Utils.getTexture(logoSrc, _onTex);
+    }
     mat.needsUpdate = true;
 
     return mesh;
@@ -195,6 +203,7 @@ export class StoreManager {
     store.logoScale    = fd.logoScale;
     store.logoRotation = fd.logoRotation;
     if (fd.newLogo) store.logo = fd.newLogo;
+    if (fd.logoSaturation !== undefined) store.logoSaturation = fd.logoSaturation;
     if ('baseColor' in fd) {
       store.baseColor = fd.baseColor || null;
       // Apply color immediately to existing meshes
@@ -332,6 +341,21 @@ export class StoreManager {
       mesh.scale.set(base.scale?.x || 1, base.scale?.z || 1, 1);
       mesh.material.color.set(original.baseColor || this._cachedColor);
       mesh.material.needsUpdate = true;
+    });
+  }
+
+  /* ── LOGO SATURATION ──────────────────────────────────── */
+  applyLogoSaturation(storeKey, saturation) {
+    const data  = this.storeMeshes[storeKey];
+    const store = Utils.findStore(storeKey);
+    if (!data?.logo || !store) return;
+    const src  = store.isEmpty ? Utils.RENTAL_LOGO : store.logo;
+    const mesh = data.logo;
+    Utils.applyCanvasSaturation(src, saturation, (tex) => {
+      mesh.userData.aspect = (tex.image?.width || 1) / (tex.image?.height || 1);
+      mesh.material.map = tex;
+      mesh.material.needsUpdate = true;
+      Utils.applyLogoScale(mesh, store.logoScale || 0.8);
     });
   }
 

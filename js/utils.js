@@ -27,6 +27,24 @@ export function getTexture(path, onLoad) {
 
 export const loadTextureAsync = getTexture;
 
+export function applyCanvasSaturation(src, saturation, callback) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width  = img.naturalWidth  || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d');
+    if (saturation !== 1) ctx.filter = `saturate(${saturation})`;
+    ctx.drawImage(img, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    callback(tex);
+  };
+  img.onerror = () => callback(getTexture(src));
+  img.src = src;
+}
+
 /* ── TEXTURE ALPHA SAMPLING ──────────────────────────────── */
 const _pixelCache = new Map();
 

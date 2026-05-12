@@ -497,13 +497,14 @@ function setupMaterials(root) {
 
     if (isStore || isFasilitas || isEvent) {
       mat.color.set(C().storeColor);
+      mat.roughness   = S.darkMode ? 0.5 : 0.7;
+      mat.metalness   = S.darkMode ? 0.15 : 0.05;
+      mat.needsUpdate = true;
     } else {
-      mat.color.set(C().defaultColor);
-      if (mat.map) mat.map = null;
+      // Escalators, stairs, and misc geometry: flat unlit so inclined surfaces
+      // don't look darker than horizontal ones under directional light.
+      child.material = new THREE.MeshBasicMaterial({ color: C().defaultColor });
     }
-    mat.roughness   = S.darkMode ? 0.5 : 0.7;
-    mat.metalness   = S.darkMode ? 0.15 : 0.05;
-    mat.needsUpdate = true;
   });
 }
 

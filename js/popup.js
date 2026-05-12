@@ -863,10 +863,11 @@ async function _saveEditMode(storeKey) {
       promos:         editType === 'store' ? [...(_tempEdit?.promos || [])] : undefined,
       events:         editType === 'event' ? [...(_tempEdit?.events || [])] : undefined,
       hours:          editType === 'store' ? _collectHours() : undefined,
-      offsetX:      Utils.getFormValue('offsetX'),
-      offsetZ:      Utils.getFormValue('offsetZ'),
-      logoScale:    Utils.getFormValue('logoScale', 0.8),
-      logoRotation: Utils.getFormValue('logoRotation'),
+      offsetX:        Utils.getFormValue('offsetX'),
+      offsetZ:        Utils.getFormValue('offsetZ'),
+      logoScale:      Utils.getFormValue('logoScale', 0.8),
+      logoRotation:   Utils.getFormValue('logoRotation'),
+      logoSaturation: Utils.getFormValue('logoSaturation', 1),
       baseOffsetX:  Utils.getFormValue('baseOffsetX'),
       baseOffsetZ:  Utils.getFormValue('baseOffsetZ'),
       baseScaleX:   Utils.getFormValue('baseScaleX', 1),
@@ -1073,6 +1074,19 @@ function _loadInfoPanel(store, storeKey) {
     const el = document.getElementById(id);
     if (el) el.oninput = () => _sm.applyLogoForm(storeKey);
   });
+
+  const satVal = store.logoSaturation ?? 1;
+  const satEl  = _el('logoSaturation');
+  const satLbl = _el('logoSaturation-val');
+  if (satEl) {
+    satEl.value = satVal;
+    if (satLbl) satLbl.textContent = satVal.toFixed(2);
+    satEl.oninput = () => {
+      const v = parseFloat(satEl.value) || 1;
+      if (satLbl) satLbl.textContent = v.toFixed(2);
+      _sm.applyLogoSaturation(storeKey, v);
+    };
+  }
 
   _el('sp-change-logo-btn').onclick = () => _el('sp-logo-input').click();
   const logoInput = _el('sp-logo-input');
