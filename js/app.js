@@ -1202,10 +1202,25 @@ function clearNavigation() {
    ══════════════════════════════════════════════════════════ */
 const _PANEL_TITLES = { map: 'Pengaturan Map', nav: 'Editor Navigasi', categories: 'Filter Kategori' };
 
+window.switchModalTab = (tabId) => {
+  document.querySelectorAll('.modal-tab-pane').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('#modal-tab-bar .modal-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId)?.classList.remove('hidden');
+  document.querySelector(`#modal-tab-bar [data-tab="${tabId}"]`)?.classList.add('active');
+};
+
 window.openPanel = (type) => {
   ['map', 'nav', 'categories'].forEach(t => {
     document.getElementById(`section-${t}`)?.classList.toggle('hidden', t !== type);
   });
+  // Show tab bar only for map panel; reset to first tab
+  const tabBar = document.getElementById('modal-tab-bar');
+  if (type === 'map') {
+    tabBar?.classList.remove('hidden');
+    window.switchModalTab('tab-3d');
+  } else {
+    tabBar?.classList.add('hidden');
+  }
   document.getElementById('modal-title').textContent = _PANEL_TITLES[type] || '';
 
   if (type === 'map') {

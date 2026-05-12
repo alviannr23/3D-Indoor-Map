@@ -130,134 +130,158 @@
       </button>
     </div>
 
+    <!-- Tab bar — only visible when map panel is open -->
+    <div class="modal-tabs hidden" id="modal-tab-bar">
+      <button class="modal-tab active" data-tab="tab-3d"       onclick="switchModalTab('tab-3d')">3D Map</button>
+      <button class="modal-tab"        data-tab="tab-maplibre" onclick="switchModalTab('tab-maplibre')">Warna Peta</button>
+    </div>
+
     <div class="modal-body">
 
       <!-- ══ SECTION: MAP ══════════════════════════════════ -->
       <div id="section-map">
-        <p class="section-label">Koordinat Peta</p>
-        <div class="coord-row">
-          <div class="coord-field">
-            <label>Longitude</label>
-            <input type="number" id="inp-lon" step="0.0001" placeholder="112.7344" />
-          </div>
-          <div class="coord-field">
-            <label>Latitude</label>
-            <input type="number" id="inp-lat" step="0.0001" placeholder="-7.3092" />
-          </div>
-        </div>
-        <p class="field-hint">Posisi object 3D akan mengikuti koordinat ini.</p>
-        <button class="btn-apply" onclick="applyCoordinates()">Terapkan &amp; Pindah ke Lokasi</button>
 
-        <div class="sect-divider"></div>
-
-        <p class="section-label">Lantai <span class="axis-hint">— pilih lantai untuk diatur</span></p>
-        <div id="floor-manager"></div>
-
-        <div class="sect-divider"></div>
-
-        <p class="section-label">Kontak Admin (untuk Rental)</p>
-        <div class="sp-field-full">
-          <label>Nomor WhatsApp Admin</label>
-          <input type="tel" id="inp-admin-wa" placeholder="628123456789 (tanpa +)" />
-          <p class="field-hint">Digunakan untuk tombol "Hubungi via WA" pada toko/event yang tersedia disewa.</p>
-        </div>
-        <button class="btn-apply" onclick="saveAdminContact()">Simpan Kontak</button>
-
-        <div class="sect-divider"></div>
-
-        <p class="section-label">Warna Objek</p>
-        <div class="color-grid">
-          <div class="color-item">
-            <label>Lantai</label>
-            <input type="color" id="inp-floor-color" value="#d4d4d8" oninput="applyMapColors()" />
+        <!-- ── TAB 1: 3D MAP ───────────────────────────── -->
+        <div id="tab-3d" class="modal-tab-pane">
+          <p class="section-label">Koordinat Peta</p>
+          <div class="coord-row">
+            <div class="coord-field">
+              <label>Longitude</label>
+              <input type="number" id="inp-lon" step="0.0001" placeholder="112.7344" />
+            </div>
+            <div class="coord-field">
+              <label>Latitude</label>
+              <input type="number" id="inp-lat" step="0.0001" placeholder="-7.3092" />
+            </div>
           </div>
-          <div class="color-item">
-            <label>Default</label>
-            <input type="color" id="inp-default-color" value="#e4e4e7" oninput="applyMapColors()" />
-          </div>
-          <div class="color-item">
-            <label>Toko</label>
-            <input type="color" id="inp-store-color" value="#6366f1" oninput="applyMapColors()" />
-          </div>
-        </div>
+          <p class="field-hint">Posisi objek 3D di atas peta.</p>
+          <button class="btn-apply" onclick="applyCoordinates()">Terapkan &amp; Pindah ke Lokasi</button>
 
-        <div class="sect-divider"></div>
+          <div class="sect-divider"></div>
 
-        <p class="section-label">Material &amp; Pencahayaan 3D</p>
+          <p class="section-label">Lantai <span class="axis-hint">— pilih lantai untuk diatur</span></p>
+          <div id="floor-manager"></div>
 
-        <div class="slider-group">
-          <div class="slider-header">
-            <span class="slider-name">Roughness</span>
-            <input type="number" id="inp-roughness" class="num-inp" min="0" max="1" step="0.05" value="0.5" />
-          </div>
-          <input type="range" id="sld-roughness" class="range-slider" min="0" max="1" step="0.05" value="0.5" />
-          <span class="axis-hint">0 = licin/mengkilap · 1 = kasar/matte</span>
-        </div>
+          <div class="sect-divider"></div>
 
-        <div class="slider-group">
-          <div class="slider-header">
-            <span class="slider-name">Metalness</span>
-            <input type="number" id="inp-metalness" class="num-inp" min="0" max="1" step="0.05" value="0.15" />
+          <p class="section-label">Warna Objek 3D</p>
+          <div class="color-grid">
+            <div class="color-item">
+              <label>Lantai</label>
+              <input type="color" id="inp-floor-color" value="#d4d4d8" oninput="applyMapColors()" />
+            </div>
+            <div class="color-item">
+              <label>Default</label>
+              <input type="color" id="inp-default-color" value="#e4e4e7" oninput="applyMapColors()" />
+            </div>
+            <div class="color-item">
+              <label>Toko</label>
+              <input type="color" id="inp-store-color" value="#6366f1" oninput="applyMapColors()" />
+            </div>
           </div>
-          <input type="range" id="sld-metalness" class="range-slider" min="0" max="1" step="0.05" value="0.15" />
-          <span class="axis-hint">0 = non-logam · 1 = metalik</span>
-        </div>
 
-        <div class="slider-group">
-          <div class="slider-header">
-            <span class="slider-name">Cahaya Ambient</span>
-            <input type="number" id="inp-ambient-int" class="num-inp" min="0" max="3" step="0.05" value="0.65" />
-          </div>
-          <input type="range" id="sld-ambient-int" class="range-slider" min="0" max="3" step="0.05" value="0.65" />
-          <span class="axis-hint">Terang dasar keseluruhan scene</span>
-        </div>
+          <div class="sect-divider"></div>
 
-        <div class="slider-group">
-          <div class="slider-header">
-            <span class="slider-name">Cahaya Matahari</span>
-            <input type="number" id="inp-sun-int" class="num-inp" min="0" max="3" step="0.05" value="1.1" />
-          </div>
-          <input type="range" id="sld-sun-int" class="range-slider" min="0" max="3" step="0.05" value="1.1" />
-          <span class="axis-hint">Directional light dari atas — buat kontras sisi toko</span>
-        </div>
+          <p class="section-label">Material &amp; Pencahayaan</p>
 
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Roughness</span>
+              <input type="number" id="inp-roughness" class="num-inp" min="0" max="1" step="0.05" value="0.5" />
+            </div>
+            <input type="range" id="sld-roughness" class="range-slider" min="0" max="1" step="0.05" value="0.5" />
+            <span class="axis-hint">0 = licin/mengkilap · 1 = kasar/matte</span>
+          </div>
 
-        <button class="btn-apply" onclick="applyMapStyle()">Simpan Style</button>
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Metalness</span>
+              <input type="number" id="inp-metalness" class="num-inp" min="0" max="1" step="0.05" value="0.15" />
+            </div>
+            <input type="range" id="sld-metalness" class="range-slider" min="0" max="1" step="0.05" value="0.15" />
+            <span class="axis-hint">0 = non-logam · 1 = metalik</span>
+          </div>
 
-        <div class="sect-divider"></div>
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Cahaya Ambient</span>
+              <input type="number" id="inp-ambient-int" class="num-inp" min="0" max="3" step="0.05" value="0.65" />
+            </div>
+            <input type="range" id="sld-ambient-int" class="range-slider" min="0" max="3" step="0.05" value="0.65" />
+            <span class="axis-hint">Terang dasar keseluruhan scene</span>
+          </div>
 
-        <p class="section-label">Warna Peta (MapLibre)</p>
-        <div class="color-grid">
-          <div class="color-item">
-            <label>Latar Peta</label>
-            <input type="color" id="inp-land-color" value="#0d1020" oninput="applyMaplibreColors()" />
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-name">Cahaya Matahari</span>
+              <input type="number" id="inp-sun-int" class="num-inp" min="0" max="3" step="0.05" value="1.1" />
+            </div>
+            <input type="range" id="sld-sun-int" class="range-slider" min="0" max="3" step="0.05" value="1.1" />
+            <span class="axis-hint">Directional light dari atas</span>
           </div>
-          <div class="color-item">
-            <label>Air</label>
-            <input type="color" id="inp-water-color" value="#0a1428" oninput="applyMaplibreColors()" />
+
+          <button class="btn-apply" onclick="applyMapStyle()">Simpan Style 3D</button>
+
+          <div class="sect-divider"></div>
+
+          <p class="section-label">Kontak Admin</p>
+          <div class="sp-field-full">
+            <label>Nomor WhatsApp Admin</label>
+            <input type="tel" id="inp-admin-wa" placeholder="628123456789 (tanpa +)" />
+            <p class="field-hint">Untuk tombol "Hubungi via WA" pada toko yang tersedia disewa.</p>
           </div>
-          <div class="color-item">
-            <label>Jalan</label>
-            <input type="color" id="inp-road-color" value="#1c2235" oninput="applyMaplibreColors()" />
+          <button class="btn-apply" onclick="saveAdminContact()">Simpan Kontak</button>
+        </div><!-- /tab-3d -->
+
+        <!-- ── TAB 2: WARNA PETA (MapLibre) ─────────────── -->
+        <div id="tab-maplibre" class="modal-tab-pane hidden">
+          <p class="section-label">Latar &amp; Alam</p>
+          <div class="color-grid-4">
+            <div class="color-item">
+              <label>Latar</label>
+              <input type="color" id="inp-land-color" value="#0d1020" oninput="applyMaplibreColors()" />
+            </div>
+            <div class="color-item">
+              <label>Air</label>
+              <input type="color" id="inp-water-color" value="#0a1428" oninput="applyMaplibreColors()" />
+            </div>
+            <div class="color-item">
+              <label>Hijau</label>
+              <input type="color" id="inp-park-color" value="#0c1a12" oninput="applyMaplibreColors()" />
+            </div>
           </div>
-          <div class="color-item">
-            <label>Outline Jalan</label>
-            <input type="color" id="inp-road-case-color" value="#111828" oninput="applyMaplibreColors()" />
+
+          <div class="sect-divider"></div>
+
+          <p class="section-label">Jalan</p>
+          <div class="color-grid-4">
+            <div class="color-item">
+              <label>Jalan</label>
+              <input type="color" id="inp-road-color" value="#1c2235" oninput="applyMaplibreColors()" />
+            </div>
+            <div class="color-item">
+              <label>Tepi Jalan</label>
+              <input type="color" id="inp-road-case-color" value="#111828" oninput="applyMaplibreColors()" />
+            </div>
           </div>
-          <div class="color-item">
-            <label>Area Hijau</label>
-            <input type="color" id="inp-park-color" value="#0c1a12" oninput="applyMaplibreColors()" />
+
+          <div class="sect-divider"></div>
+
+          <p class="section-label">Bangunan</p>
+          <div class="color-grid-4">
+            <div class="color-item">
+              <label>Bangunan</label>
+              <input type="color" id="inp-building-color" value="#12172a" oninput="applyMaplibreColors()" />
+            </div>
+            <div class="color-item">
+              <label>Tepi Gedung</label>
+              <input type="color" id="inp-building-outline-color" value="#1a2040" oninput="applyMaplibreColors()" />
+            </div>
           </div>
-          <div class="color-item">
-            <label>Bangunan</label>
-            <input type="color" id="inp-building-color" value="#12172a" oninput="applyMaplibreColors()" />
-          </div>
-          <div class="color-item">
-            <label>Outline Bangunan</label>
-            <input type="color" id="inp-building-outline-color" value="#1a2040" oninput="applyMaplibreColors()" />
-          </div>
-        </div>
-        <p class="field-hint">Warna layer pada base map MapLibre — berlaku langsung saat dipilih.</p>
+
+          <p class="field-hint">Berlaku langsung saat warna dipilih — klik di luar picker untuk menutup.</p>
+          <button class="btn-apply" onclick="applyMaplibreColors()">Terapkan Semua Warna</button>
+        </div><!-- /tab-maplibre -->
 
       </div><!-- /section-map -->
 

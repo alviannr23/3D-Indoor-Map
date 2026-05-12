@@ -113,6 +113,26 @@ input[type=range].range-slider::-moz-range-thumb {
 .toggle-switch input:checked + .toggle-track { background: #6366f1; border-color: transparent; }
 .toggle-switch input:checked + .toggle-track::before { transform: translateX(20px); }
 
+/* ── Modal tab bar (between header and body, does not scroll) ── */
+.modal-tabs {
+  display: flex; gap: 5px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.modal-tab {
+  flex: 1; padding: 7px 6px;
+  border: none; border-radius: 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.05);
+  color: #64748b;
+  transition: background 0.15s, color 0.15s;
+}
+.modal-tab.active  { background: #6366f1; color: #fff; }
+.modal-tab:hover:not(.active) { background: rgba(255,255,255,0.1); color: #94a3b8; }
+.modal-tab-pane.hidden { display: none; }
+
 /* Color pickers */
 .color-grid { display: flex; gap: 10px; margin-bottom: 4px; }
 .color-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -121,6 +141,16 @@ input[type=range].range-slider::-moz-range-thumb {
   width: 36px; height: 28px; border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px; cursor: pointer; background: transparent; padding: 2px;
 }
+
+/* 4-column color grid for MapLibre color settings */
+.color-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px 6px;
+  margin-bottom: 12px;
+}
+.color-grid-4 .color-item { flex: unset; }
+.color-grid-4 .color-item input[type=color] { width: 100%; max-width: 44px; }
 
 /* ── Nav editor tools (inside settings modal) ────────────────── */
 .nav-ed-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
