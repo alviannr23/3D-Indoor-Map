@@ -1882,15 +1882,91 @@ function _hideModelBar() {
 }
 
 /* ── CATEGORY FILTER ─────────────────────────────────────── */
-const _CAT_ICONS = {
-  'Retail':  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`,
-  'Makanan': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>`,
-  'Minuman': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`,
-  'Toilet':  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`,
-  'Alat':    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,
+const _ICON_SET = {
+  'shopping-bag':  `<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>`,
+  'shopping-cart': `<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/>`,
+  'utensils':      `<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>`,
+  'coffee':        `<path d="M17 8h1a4 4 0 010 8h-1"/><path d="M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>`,
+  'pizza':         `<path d="M12 2a10 10 0 1010 10"/><path d="M12 2a10 10 0 00-4.65 1.05M12 2l8 14.93"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="8" cy="10" r="1" fill="currentColor"/>`,
+  'wine':          `<path d="M8 22h8M12 11v11M5 3h14l-1 7a6 6 0 01-12 0z"/>`,
+  'beer':          `<path d="M5 3h14l-1.5 7H6.5L5 3z"/><path d="M6.5 10v9a2 2 0 002 2h7a2 2 0 002-2v-9"/><path d="M17 14h2a2 2 0 000-4h-2"/>`,
+  'wrench':        `<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>`,
+  'scissors':      `<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>`,
+  'dollar-sign':   `<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>`,
+  'credit-card':   `<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
+  'film':          `<rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/>`,
+  'music':         `<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>`,
+  'gamepad':       `<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="13" r="1" fill="currentColor"/><circle cx="18" cy="11" r="1" fill="currentColor"/>`,
+  'dumbbell':      `<rect x="1" y="9" width="4" height="6" rx="1"/><rect x="19" y="9" width="4" height="6" rx="1"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="7" y="7" width="3" height="10" rx="1"/><rect x="14" y="7" width="3" height="10" rx="1"/>`,
+  'heart':         `<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>`,
+  'pill':          `<path d="M10.5 20.5l10-10a4.95 4.95 0 10-7-7l-10 10a4.95 4.95 0 107 7z"/><path d="M8.5 8.5l7 7"/>`,
+  'book':          `<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>`,
+  'pen':           `<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>`,
+  'smartphone':    `<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/>`,
+  'headphones':    `<path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>`,
+  'camera':        `<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>`,
+  'shirt':         `<path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/>`,
+  'sparkles':      `<path d="M12 3l1.5 4.5H18l-3.75 2.75L15.75 15 12 12.25 8.25 15l1.5-4.75L6 7.5h4.5z"/><path d="M5 9.5l.5 1.5H7l-1.25.9.5 1.6L5 12.5l-1.25 1 .5-1.6L3 9.5h1.5z"/><path d="M19 4l.5 1.5H21l-1.25.9.5 1.6L19 6.5l-1.25 1 .5-1.6L17 4h1.5z"/>`,
+  'baby':          `<circle cx="12" cy="10" r="7"/><path d="M9 13.5c.5.83 1.5 1.5 3 1.5s2.5-.67 3-1.5"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3"/>`,
+  'car':           `<path d="M5 17H3a2 2 0 01-2-2V9a2 2 0 012-2h1L6.5 4h11L19 7h1a2 2 0 012 2v6a2 2 0 01-2 2h-2"/><circle cx="7.5" cy="17" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/>`,
+  'key':           `<circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/>`,
+  'map-pin':       `<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>`,
+  'wifi':          `<path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"/>`,
+  'droplet':       `<path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>`,
+  'sun':           `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`,
+  'star':          `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>`,
+  'tag':           `<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7" stroke-width="3"/>`,
+  'percent':       `<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>`,
+  'gift':          `<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>`,
+  'home':          `<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`,
+  'package':       `<path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`,
+  'grid':          `<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>`,
 };
-const _CAT_ICON_DEFAULT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`;
-function _getCatIcon(label) { return _CAT_ICONS[label] || _CAT_ICON_DEFAULT; }
+const _CAT_LABEL_TO_ICON = {
+  'Retail':'shopping-bag','Makanan':'utensils','Minuman':'coffee','Toilet':'droplet','Alat':'wrench',
+};
+function _wrapSvg(paths, size = 14) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+function _getCatIcon(label, iconName) {
+  const name = iconName || _CAT_LABEL_TO_ICON[label];
+  return _wrapSvg(_ICON_SET[name] || _ICON_SET['grid']);
+}
+
+let _iconPickerRowIdx = -1;
+window._openIconPicker = (rowIdx, btnEl) => {
+  _iconPickerRowIdx = rowIdx;
+  const panel = document.getElementById('icon-picker-panel');
+  if (!panel) return;
+  const currentIcon = S.categoryFilters[rowIdx]?.icon || '';
+  panel.innerHTML = Object.keys(_ICON_SET).map(name =>
+    `<button class="icon-picker-cell${name === currentIcon ? ' selected' : ''}"
+      title="${name}" onclick="window._selectCatIcon('${name}')">
+      ${_wrapSvg(_ICON_SET[name], 18)}
+    </button>`
+  ).join('');
+  const rect = btnEl.getBoundingClientRect();
+  const pw = 246;
+  let left = rect.left, top = rect.bottom + 5;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top + 220 > window.innerHeight) top = rect.top - 225;
+  panel.style.cssText += `left:${left}px;top:${top}px`;
+  panel.classList.add('open');
+};
+window._selectCatIcon = (name) => {
+  if (_iconPickerRowIdx < 0) return;
+  S.categoryFilters[_iconPickerRowIdx].icon = name;
+  persist(); buildCategoryBar(); _buildCategoryAdminUI();
+  document.getElementById('icon-picker-panel')?.classList.remove('open');
+  _iconPickerRowIdx = -1;
+};
+document.addEventListener('mousedown', e => {
+  const p = document.getElementById('icon-picker-panel');
+  if (!p?.classList.contains('open')) return;
+  if (!p.contains(e.target) && !e.target.closest('.cat-admin-icon-btn')) {
+    p.classList.remove('open'); _iconPickerRowIdx = -1;
+  }
+});
 
 function buildCategoryBar() {
   const bar = document.getElementById('category-bar');
@@ -1899,7 +1975,7 @@ function buildCategoryBar() {
   bar.innerHTML = cats.map(c => {
     const lbl = c.label.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     return `<button class="cat-chip" data-cat="${lbl}" onclick="window.applyCategoryFilter('${lbl}')">
-      ${_getCatIcon(c.label)}<span>${c.label}</span>
+      ${_getCatIcon(c.label, c.icon)}<span>${c.label}</span>
     </button>`;
   }).join('') + `<button class="cat-chip cat-chip--more" onclick="window.openCatPanel()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
@@ -1908,15 +1984,14 @@ function buildCategoryBar() {
 }
 
 window.openCatPanel = () => {
-  const cfg = Utils.getStoreConfig();
-  const allCats = [...new Set(cfg.filter(s => s.category).map(s => s.category))].sort();
   const list = document.getElementById('cat-panel-list');
   if (!list) return;
-  list.innerHTML = allCats.map(cat => {
-    const safe = cat.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  const cats = (S.categoryFilters || []).filter(c => c.label);
+  list.innerHTML = cats.map(c => {
+    const safe = c.label.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
     return `<button class="cat-panel-item" data-cat="${safe}"
       onclick="window.applyCategoryFilter('${safe}'); window.closeCatPanel()">
-      ${_getCatIcon(cat)}<span>${cat}</span>
+      ${_getCatIcon(c.label, c.icon)}<span>${c.label}</span>
     </button>`;
   }).join('');
   document.querySelectorAll('.cat-panel-item').forEach(b =>
@@ -2001,10 +2076,10 @@ function _buildCategoryAdminUI() {
   if (!S.categoryFilters) S.categoryFilters = [];
   el.innerHTML = S.categoryFilters.map((c, i) => `
     <div class="cat-admin-row">
-      <input class="cat-admin-icon" type="text" maxlength="4"
-        value="${(c.icon || '').replace(/"/g, '&quot;')}" placeholder=""
-        oninput="window._catSetIcon(${i}, this.value)"
-        onblur="window._catSave()" />
+      <button class="cat-admin-icon-btn" title="Pilih ikon"
+        onclick="window._openIconPicker(${i}, this)">
+        ${_getCatIcon(c.label, c.icon)}
+      </button>
       <input class="cat-admin-label" type="text"
         value="${(c.label || '').replace(/"/g, '&quot;')}" placeholder="Nama kategori"
         oninput="window._catSetLabel(${i}, this.value)"

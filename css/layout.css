@@ -294,6 +294,27 @@ body.is-tenant .tenant-focus-btn { display: flex; }
 .cat-chip.active { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.55); color: #a5b4fc; }
 .cat-chip svg { flex-shrink: 0; }
 
+/* ── Icon picker (admin) ────────────────────────────────────── */
+#icon-picker-panel {
+  position: fixed; z-index: 9999;
+  background: rgba(13,20,38,0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.10); border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.65);
+  padding: 6px;
+  display: grid; grid-template-columns: repeat(6, 36px); gap: 3px;
+  opacity: 0; pointer-events: none; transform: scale(0.94);
+  transition: opacity 0.15s, transform 0.15s;
+}
+#icon-picker-panel.open { opacity: 1; pointer-events: all; transform: scale(1); }
+.icon-picker-cell {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: none; border: 1px solid transparent; color: #64748b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.icon-picker-cell:hover { background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.25); }
+.icon-picker-cell.selected { background: rgba(99,102,241,0.22); color: #a5b4fc; border-color: rgba(99,102,241,0.45); }
+
 /* ── Category panel ─────────────────────────────────────────── */
 #cat-panel-overlay {
   display: none; position: fixed; inset: 0; z-index: 199;
